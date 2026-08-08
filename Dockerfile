@@ -7,7 +7,7 @@
 # Dependabot bump to 3.14 went unnoticed because the CI triggers were wrong and
 # no run had fired since. Keep this in step with the test matrix.
 # ── builder ──────────────────────────────────────────────────────────
-FROM python:3.12-slim AS builder
+FROM python:3.14-slim AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -28,7 +28,7 @@ RUN python -m venv /opt/venv \
  && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
 
 # ── runtime ──────────────────────────────────────────────────────────
-FROM python:3.12-slim AS runtime
+FROM python:3.14-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
