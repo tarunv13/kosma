@@ -26,6 +26,19 @@ updates:
       prefix: "ci"
       include: scope
 
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Kolkata
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "web"]
+    commit-message:
+      prefix: "web"
+      include: scope
+
   - package-ecosystem: docker
     directory: /
     schedule:
@@ -38,3 +51,14 @@ updates:
     commit-message:
       prefix: "docker"
       include: scope
+    # The interpreter is not an ordinary dependency: the container has to run
+    # the version the test matrix actually exercises. A 3.11 -> 3.14 bump was
+    # merged unnoticed once and shipped an image on a Python no test in this
+    # repository had ever run against. Patch bumps (security fixes to the same
+    # interpreter line) are still welcome; moving the line is a deliberate
+    # change made together with ci.yml, render.yaml and pyproject.
+    ignore:
+      - dependency-name: python
+        update-types:
+          - version-update:semver-major
+          - version-update:semver-minor
