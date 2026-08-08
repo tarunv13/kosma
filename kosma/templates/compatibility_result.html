@@ -1,0 +1,241 @@
+{% extends "_layout.html" %}
+{% from "_macros.html" import bar, verdict_pill, dosha_pill, ledger_table %}
+{% set page = 'compatibility' %}
+{% block title %}KOSMA &mdash; {{ headline }}{% endblock %}
+
+{% block body %}
+<main class="wrap">
+
+  <div class="pagehead">
+    <p class="eyebrow">{{ mode }} reading &middot; computed {{ computed_at }}</p>
+    <h1 class="display">{{ headline }}</h1>
+  </div>
+
+  <div class="charts {% if charts | length == 3 %}charts--three{% endif %}">
+    {% for c in charts %}
+    <div class="chartcard">
+      <h3>{{ c.label }}</h3>
+      <dl>
+        <dt>Born</dt><dd>{{ c.when }}</dd>
+        <dt>Place</dt><dd>{{ c.place }}</dd>
+        <dt>Lagna</dt><dd>{{ c.ascendant }}</dd>
+        <dt>Moon</dt><dd>{{ c.moon }}</dd>
+        <dt>Star</dt><dd>{{ c.nakshatra }}</dd>
+      </dl>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% for p in pairs %}
+  <section class="panel">
+    <div class="panel__head">
+      <h2 class="panel__title">{{ p.a }} &amp; {{ p.b }}</h2>
+      <span class="panel__meta">{{ p.findings | length }} reported &middot; {{ p.withheld | length }} withheld</span>
+    </div>
+  </section>
+
+  {# ── 1. Findings first. This is the point of the whole system. ── #}
+  <section class="panel">
+    <div class="panel__head">
+      <h2 class="panel__title">Findings</h2>
+      <span class="panel__meta">two agreeing kinds of factor required</span>
+    </div>
+    <div class="panel__body">
+      <div class="table-scroll">
+        <table class="data">
+          <thead>
+            <tr><th>Topic</th><th>Reading</th><th>Confidence</th><th>Agreeing factors</th><th>Cites</th></tr>
+          </thead>
+          <tbody>
+            {% for f in p.findings %}
+            <tr>
+              <td class="key">{{ f.topic }}<br /><span class="hint">{{ f.description }}</span></td>
+              <td>{{ verdict_pill(f.verdict) }}</td>
+              <td class="eid">{{ f.confidence }}</td>
+              <td class="kinds">{{ f.outcome.kinds | join(', ') | replace('_', ' ') }}</td>
+              <td class="eid">{{ f.citations | join(' ') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  {% if p.withheld %}
+  <section class="panel withheld">
+    <div class="panel__head">
+      <h2 class="panel__title">Withheld</h2>
+      <span class="panel__meta">not supportable from these two charts</span>
+    </div>
+    <div class="panel__body">
+      <p class="note">
+        These topics were tested and no direction reached the threshold. That is
+        a result, not a gap &mdash; any reading of them would be invention.
+      </p>
+      <div class="table-scroll">
+        <table class="data">
+          <thead><tr><th>Topic</th><th>Why</th></tr></thead>
+          <tbody>
+            {% for w in p.withheld %}
+            <tr>
+              <td class="key">{{ w.topic }}</td>
+              <td>{{ w.outcome.failure_reason(w.topic) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  {# ── 2. The koota tally, reported but not leading. ── #}
+  <section class="panel">
+    <div class="panel__head">
+      <h2 class="panel__title">{{ p.milan.scheme }}</h2>
+      <span class="panel__meta">one input among several</span>
+    </div>
+    <div class="panel__body">
+      <div class="score">
+        <span class="score__value">{{ '%g' | format(p.milan.total) }}</span>
+        <span class="score__max">/ {{ '%g' | format(p.milan.maximum) }}</span>
+        <span class="score__pct">{{ p.milan.percentage }}%</span>
+      </div>
+      <p>{{ bar(p.milan.total, p.milan.maximum, 40) }}</p>
+
+      <div class="table-scroll">
+        <table class="data">
+          <thead><tr><th>Koota</th><th>Score</th><th></th><th>How it lands</th></tr></thead>
+          <tbody>
+            {% for k in p.milan.kootas %}
+            <tr>
+              <td class="key">{{ k.name }}{% if k.variant_note %} <span class="flag" title="authors differ">&#9888;</span>{% endif %}</td>
+              <td class="num">{{ '%g' | format(k.score) }} / {{ '%g' | format(k.maximum) }}</td>
+              <td>{{ bar(k.score, k.maximum, 10) }}</td>
+              <td>
+                {{ k.detail }}
+                {% if k.variant_note %}<br /><span class="src">{{ k.variant_note }}</span>{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <p class="note note--caution">{{ p.milan.critique }}</p>
+    </div>
+  </section>
+
+  {# ── 3. Doshas, with cancellations. ── #}
+  <section class="panel">
+    <div class="panel__head"><h2 class="panel__title">Dosha checks</h2></div>
+    <div class="panel__body">
+      <div class="table-scroll">
+        <table class="data">
+          <thead><tr><th>Check</th><th>Status</th><th>Detail</th><th>Cancellation</th></tr></thead>
+          <tbody>
+            {% for d in p.doshas %}
+            <tr>
+              <td class="key">{{ d.name }}</td>
+              <td>{{ dosha_pill(d) }}</td>
+              <td>{{ d.detail }}</td>
+              <td>
+                {% if d.cancellations %}
+                  {% for c in d.cancellations %}{{ c }}{% if not loop.last %}; {% endif %}{% endfor %}
+                {% elif d.present %}
+                  <span class="hint">none found</span>
+                {% else %}
+                  <span class="hint">&mdash;</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="note note--inset">{{ p.doshas[0].note }}</p>
+    </div>
+  </section>
+
+  {# ── 4. Synastry. ── #}
+  <section class="panel">
+    <div class="panel__head">
+      <h2 class="panel__title">Synastry</h2>
+      <span class="panel__meta">where each chart falls in the other</span>
+    </div>
+    <div class="panel__body">
+      <div class="grid grid--2">
+        <div>
+          <p class="note"><strong>{{ p.a }}&rsquo;s planets in {{ p.b }}&rsquo;s houses</strong></p>
+          <table class="data">
+            <tbody>
+              {% for o in p.overlays_ab %}
+              <tr>
+                <td class="key">{{ o.planet }}</td>
+                <td class="num">H{{ o.into_house }}</td>
+                <td>{{ o.theme }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <p class="note"><strong>{{ p.b }}&rsquo;s planets in {{ p.a }}&rsquo;s houses</strong></p>
+          <table class="data">
+            <tbody>
+              {% for o in p.overlays_ba %}
+              <tr>
+                <td class="key">{{ o.planet }}</td>
+                <td class="num">H{{ o.into_house }}</td>
+                <td>{{ o.theme }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {% if p.cross_ab or p.cross_ba %}
+      <p class="note"><strong>Cross-chart drishti</strong></p>
+      <table class="data">
+        <tbody>
+          {% for c in p.cross_ab + p.cross_ba %}
+          <tr>
+            <td class="key">{{ c.source_owner }}&rsquo;s {{ c.source_planet }}</td>
+            <td>aspects {{ c.target_owner }}&rsquo;s {{ c.target }}</td>
+            <td class="src">{{ c.rule }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      <p class="note note--inset"><strong>Dashas in force.</strong> {{ p.sync.detail }}</p>
+      <p class="note">{{ p.navamsa_note }}</p>
+    </div>
+  </section>
+
+  {# ── 5. The full ledger, so any line can be checked. ── #}
+  <section class="panel">
+    <div class="panel__head">
+      <h2 class="panel__title">Evidence ledger</h2>
+      <span class="panel__meta">{{ p.ledger | length }} observations</span>
+    </div>
+    <div class="panel__body">
+      {{ ledger_table(p.ledger) }}
+      <p class="hint">
+        &#9888; marks material disputed between authorities. It is shown for
+        completeness and never counted toward the threshold.
+      </p>
+    </div>
+  </section>
+  {% endfor %}
+
+  <div class="actions">
+    <a class="btn btn--ghost" href="/compatibility">Compare another pair</a>
+    <a class="btn btn--ghost" href="/">Single chart</a>
+  </div>
+
+</main>
+{% endblock %}

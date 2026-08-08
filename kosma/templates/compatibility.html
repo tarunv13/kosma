@@ -1,0 +1,94 @@
+{% extends "_layout.html" %}
+{% from "_macros.html" import person_fields %}
+{% set page = 'compatibility' %}
+{% block title %}KOSMA &mdash; Compatibility{% endblock %}
+
+{% block body %}
+<main class="wrap">
+
+  <div class="pagehead">
+    <p class="eyebrow">Two or three charts &middot; weighed on classical factors</p>
+    <h1 class="display">Compatibility</h1>
+    <p class="lede">
+      Guna milan is eight factors taken from the Moon and nothing else &mdash; it
+      ignores both ascendants, the 7th house, Venus, Mars, and the dashas in
+      force. So the score is reported, but it does not lead. What leads is the
+      set of findings that <strong>two independent kinds of factor agree on</strong>,
+      across both charts. Where they do not agree, the topic is withheld.
+    </p>
+  </div>
+
+  <form action="/compatibility" method="post" autocomplete="off" novalidate>
+
+    <section class="panel">
+      <div class="panel__head">
+        <h2 class="panel__title">Reading</h2>
+      </div>
+      <div class="panel__body">
+        <div class="grid grid--2">
+          <div class="field">
+            <label for="mode">What are you comparing?</label>
+            <select id="mode" name="mode">
+              <option value="relationship">Relationship &mdash; full ashtakoota out of 36</option>
+              <option value="friendship">Friendship &mdash; affinity factors only</option>
+            </select>
+            <p class="hint">
+              Friendship drops Yoni and Nadi. Those two exist to assess sexual and
+              genetic compatibility and have nothing to say about a friendship.
+            </p>
+          </div>
+          <div class="field">
+            <label for="third">How many people?</label>
+            <select id="third" name="include_third">
+              <option value="no">Two</option>
+              <option value="yes">Three &mdash; compared pairwise</option>
+            </select>
+            <p class="hint">
+              There is no classical method for scoring a group as a whole, so three
+              people are compared in pairs rather than averaged into one number.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="people" id="people">
+      {{ person_fields('a', 'First person') }}
+      {{ person_fields('b', 'Second person') }}
+      <div id="person-c-slot" class="panel-hidden">
+        {{ person_fields('c', 'Third person') }}
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="btn">Compare</button>
+      <a class="btn btn--ghost" href="/">Single chart instead</a>
+      <p class="hint">Rate-limited to 10 comparisons an hour per address.</p>
+    </div>
+  </form>
+
+  <section class="panel">
+    <div class="panel__head"><h2 class="panel__title">Before you read the number</h2></div>
+    <div class="panel__body">
+      <p class="note">
+        Two of the eight kootas carry social weight worth naming.
+        <strong>Varna</strong> here is a classification by the Moon sign's element
+        &mdash; a temperament class assigned by the sky, not anyone's birth caste,
+        and it means nothing about social standing.
+        <strong>Nadi</strong> and <strong>Bhakoot</strong> doshas are routinely
+        used to refuse matches, usually without the classical cancellation
+        conditions that go with them. Those conditions are checked here and
+        reported alongside.
+      </p>
+      <p class="note note--inset">
+        A dosha is a flag to examine. It is not a disqualification of a person.
+      </p>
+    </div>
+  </section>
+
+  <datalist id="city-list">
+    {% for c in cities %}<option value="{{ c }}"></option>{% endfor %}
+  </datalist>
+
+</main>
+{% endblock %}

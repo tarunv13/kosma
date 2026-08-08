@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="referrer" content="no-referrer" />
+  <meta name="robots" content="noindex,nofollow" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#08090b" />
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+  <title>{% block title %}KOSMA{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">Kosma<span class="brand-dot">.</span></a>
+    <nav class="nav">
+      <a href="/" {% if page == 'blueprint' %}aria-current="page"{% endif %}>Blueprint</a>
+      <a href="/compatibility" {% if page == 'compatibility' %}aria-current="page"{% endif %}>Compatibility</a>
+    </nav>
+  </header>
+
+  {% block body %}{% endblock %}
+
+  <footer class="foot">
+    <p class="mono">LAHIRI AYANAMSA &middot; SIDEREAL &middot; SWISS EPHEMERIS &middot; WHOLE-SIGN + PLACIDUS FOR KP</p>
+    <p>Computed in memory and discarded. No database, no cookies, no third-party calls.</p>
+    <p>For reflection. Not medical, legal, financial, or psychological advice. &copy; {{ year }}</p>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

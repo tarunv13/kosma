@@ -1,0 +1,32 @@
+# One-click deploy on Fly.io: https://fly.io/docs/reference/configuration/
+# After installing flyctl: `fly launch --copy-config` from this directory.
+app = "kosma"
+primary_region = "sin"   # Singapore; see https://fly.io/docs/reference/regions/
+kill_signal = "SIGTERM"
+kill_timeout = "10s"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8000"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/healthz"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 256

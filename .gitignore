@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Frontend (web/)
+node_modules/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# Generated
+*.pdf
+# The one committed PDF is generated from a synthetic epoch, never a person.
+!docs/sample-blueprint.pdf
+out/
+
+# Personal readings must never be committed. This project's whole claim is
+# that birth data is sensitive; a repository carrying someone's chart
+# contradicts it. Generate to a path outside the repo instead.
+docs/*-soul-blueprint.*
+docs/*-blueprint.md
+docs/*-week-ahead*
+*.kosma
+dist/
+build/
+
+# Secrets / local config
+.env
+.env.local
+*.pem
+*.key

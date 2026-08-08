@@ -1,0 +1,137 @@
+name: CI
+
+# The default branch of this repository is not called `main`, so triggers
+# limited to `main` silently never fire and the README badge lies.
+on:
+  push:
+    branches: [main, "feat/**"]
+  pull_request:
+    branches: [main, "feat/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install --upgrade pip
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: ruff format --check .
+
+  type:
+    name: type-check (mypy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install --upgrade pip
+      - run: pip install -e ".[dev]"
+      - run: mypy kosma
+
+  web:
+    name: frontend (next build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      # `next build` typechecks and lints too, but running tsc first gives a
+      # clearer failure when only the types have drifted from the contract.
+      - run: npm run build
+
+  test:
+    name: tests (pytest)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - run: pip install --upgrade pip
+      - run: pip install -e ".[dev]"
+      - run: pytest --cov=kosma --cov-report=term-missing
+
+  audit:
+    name: dependency audit (pip-audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install --upgrade pip
+      - run: pip install pip-audit
+      # Audit the runtime dependency set, not the dev tooling.
+      # We can't pass --disable-pip without a hashed requirements file or
+      # --no-deps, so let pip-audit do its own resolution. --strict still
+      # fails the build on any unresolved warning.
+      - run: pip-audit -r requirements.txt --strict
+
+  docker:
+    name: docker build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v4
+      - name: Build image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false
+          load: true
+          tags: kosma:ci
+      - name: Smoke run the image
+        run: |
+          # No --rm: an exited container must survive long enough to be read.
+          # With --rm the container is gone the instant it crashes, so the
+          # `docker logs` below printed "No such container" and the real cause
+          # was invisible. That is how a broken base image sat here unnoticed.
+          docker run -d --name kosma-ci -p 8000:8000 kosma:ci
+          exit_code=1
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:8000/healthz; then
+              echo "healthz ok"
+              exit_code=0
+              break
+            fi
+            if [ -z "$(docker ps -q -f name=kosma-ci)" ]; then
+              echo "::error::container exited before serving; logs follow"
+              break
+            fi
+            sleep 1
+          done
+          echo "--- container logs ---"
+          docker logs kosma-ci 2>&1 || echo "(container produced no output)"
+          echo "--- exit state ---"
+          docker inspect -f 'exited={{.State.ExitCode}} oom={{.State.OOMKilled}} err={{.State.Error}}' kosma-ci || true
+          docker rm -f kosma-ci >/dev/null 2>&1 || true
+          exit "$exit_code"

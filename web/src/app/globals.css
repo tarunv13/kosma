@@ -1,0 +1,168 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   Ethereal Light
+   --------------------------------------------------------------------------
+   A daytime celestial surface: off-white paper, slate-900 ink, and a faint
+   engraved orrery behind everything.
+
+   Two rules hold the contrast in place:
+     1. Nothing that carries text uses ink-4. The text floor is ink-3 (7.4:1).
+     2. Panels are opaque vellum with a real border and a real shadow, so they
+        sit above the orrery instead of dissolving into it.
+   ========================================================================== */
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --ring-ink: rgba(15, 23, 42, 0.10);
+    --ring-gold: rgba(107, 71, 8, 0.18);
+  }
+
+  html {
+    font-size: 16px;
+    background: #f8fafc;
+  }
+
+  body {
+    @apply bg-transparent text-base text-ink;
+    font-family: var(--font-sans), system-ui, sans-serif;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-synthesis-weight: none;
+  }
+
+  /* Every figure is tabular. Degrees that jitter between renders read as
+     sloppy, and this interface claims arc-second precision. */
+  .tnum,
+  table td,
+  table th {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+
+  ::selection {
+    background: rgba(216, 163, 60, 0.30);
+    color: #0f172a;
+  }
+
+  :focus-visible {
+    outline: 2px solid #6b4708;
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar {
+    height: 10px;
+    width: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border: 2px solid #f8fafc;
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+  }
+}
+
+@layer components {
+  /* Vellum — the one container treatment. A visible 1px edge plus a layered
+     shadow, so a card reads as sitting *on* the orrery rather than in it. */
+  .panel {
+    @apply rounded-2xl border border-slate-200/90 bg-vellum shadow-panel;
+  }
+  .panel-hover {
+    @apply transition-shadow duration-300 hover:shadow-lift;
+  }
+
+  .panel-head {
+    @apply flex flex-wrap items-baseline justify-between gap-3
+           border-b border-slate-200/90 bg-slate-50/60 px-6 py-4;
+  }
+  .panel-body {
+    @apply px-6 py-5;
+  }
+
+  /* Uppercase micro-labels. Kept uppercase, but carried by weight and contrast
+     rather than by size — 13px semibold in ink-2 at 10.3:1. */
+  .eyebrow {
+    @apply font-mono text-micro font-semibold uppercase tracking-[0.14em] text-ink-2;
+  }
+  /* The dimmer variant, for genuinely secondary chrome. Still AAA. */
+  .eyebrow-quiet {
+    @apply font-mono text-micro font-medium uppercase tracking-[0.14em] text-ink-3;
+  }
+
+  .heading {
+    @apply font-serif font-semibold tracking-tight text-ink;
+  }
+
+  .rule {
+    @apply h-px w-full bg-hair;
+  }
+
+  /* Chips: dark readable text, crisp 1px border, clean ground. */
+  .chip {
+    @apply inline-flex items-center rounded-full border px-2.5 py-1
+           font-mono text-micro font-medium tracking-wide;
+  }
+  .chip-gold {
+    @apply border-gold/45 bg-gold-wash text-gold;
+  }
+  .chip-nebula {
+    @apply border-nebula/40 bg-nebula-wash text-nebula;
+  }
+  .chip-pos {
+    @apply border-pos/40 bg-pos-wash text-pos;
+  }
+  .chip-neg {
+    @apply border-neg/40 bg-neg-wash text-neg;
+  }
+  .chip-muted {
+    @apply border-slate-300 bg-white text-ink-2;
+  }
+
+  .field-input {
+    @apply w-full rounded-xl border border-slate-300 bg-white px-4 py-3
+           font-mono text-base font-medium text-ink outline-none
+           transition-colors placeholder:font-normal placeholder:text-ink-3
+           hover:border-slate-400 focus:border-gold focus:ring-4 focus:ring-gold/20;
+  }
+
+  .btn-primary {
+    @apply rounded-xl border border-gold/60 bg-gold-wash px-6 py-3 font-mono
+           text-micro font-bold uppercase tracking-[0.12em] text-gold
+           shadow-sm transition-all
+           hover:border-gold hover:bg-gold/15 hover:shadow-glow
+           active:translate-y-px
+           disabled:cursor-not-allowed disabled:opacity-50;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@media print {
+  .celestial-field {
+    display: none;
+  }
+  .panel {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+}

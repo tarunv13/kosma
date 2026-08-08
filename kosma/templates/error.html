@@ -1,0 +1,27 @@
+{% extends "_layout.html" %}
+{% set page = 'compatibility' %}
+{% block title %}KOSMA &mdash; check the details{% endblock %}
+
+{% block body %}
+<main class="wrap wrap--narrow">
+  <div class="pagehead">
+    <p class="eyebrow">Nothing was computed</p>
+    <h1 class="display">That input did not resolve.</h1>
+  </div>
+
+  <section class="panel error">
+    <div class="panel__head"><h2 class="panel__title">What went wrong</h2></div>
+    <div class="panel__body">
+      <p class="note">{{ message }}</p>
+      <p class="note note--inset">
+        Nothing was stored, and nothing you typed is shown back here or written
+        to any log.
+      </p>
+    </div>
+  </section>
+
+  <div class="actions">
+    <a class="btn" href="{{ back }}">Go back and fix it</a>
+  </div>
+</main>
+{% endblock %}

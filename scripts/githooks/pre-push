@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+#
+# Refuses a force-push or a delete of a protected branch.
+#
+# Why this exists as a local hook: GitHub does not enforce branch protection
+# or rulesets on a private repository under a free personal account — both
+# settings pages say so plainly. Configuring a rule there would look like
+# protection while doing nothing, which is worse than none.
+#
+# This is not a server-side guarantee. It cannot stop a determined push
+# (`--no-verify` skips it) and it does not apply to anyone else's clone. What
+# it does stop is the realistic failure for a solo maintainer: force-pushing
+# the default branch by accident, which is exactly how this repository's
+# history was rewritten.
+#
+# Install:  git config core.hooksPath scripts/githooks
+
+set -euo pipefail
+
+PROTECTED_REGEX='^(feat/soul-blueprint-webapp|main|master)$'
+ZERO='0000000000000000000000000000000000000000'
+status=0
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  branch="${remote_ref#refs/heads/}"
+  [[ "$branch" =~ $PROTECTED_REGEX ]] || continue
+
+  if [ "$local_sha" = "$ZERO" ]; then
+    echo "refusing to delete protected branch '$branch'" >&2
+    status=1
+    continue
+  fi
+
+  # A non-fast-forward means history is being rewritten under the remote.
+  if [ "$remote_sha" != "$ZERO" ] && ! git merge-base --is-ancestor "$remote_sha" "$local_sha"; then
+    echo "refusing to force-push '$branch': $(git rev-parse --short "$remote_sha") is not an ancestor of $(git rev-parse --short "$local_sha")" >&2
+    echo "if the rewrite is deliberate, re-run with --no-verify" >&2
+    status=1
+  fi
+done
+
+exit "$status"

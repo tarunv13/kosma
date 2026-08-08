@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/tarunv13/kosma/security/advisories/new
+    about: Use private vulnerability reporting. Do not file a public issue.

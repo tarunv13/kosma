@@ -1,0 +1,127 @@
+{% extends "_layout.html" %}
+{% set page = 'blueprint' %}
+{% block title %}KOSMA &mdash; Soul Blueprint{% endblock %}
+
+{% block body %}
+<main class="wrap wrap--narrow">
+
+  <div class="pagehead">
+    <p class="eyebrow">Vedic &middot; computed &middot; nothing stored</p>
+    <h1 class="display">Your chart, measured &mdash; and only what it can support.</h1>
+    <p class="lede">
+      A birth date, time and place, resolved against the Swiss Ephemeris to the
+      arc-second. Dignity, yogas, sixteen divisional charts, ashtakavarga,
+      shadbala, dashas and transits. Then a gate that reports an area of life
+      <strong>only where two independent kinds of chart factor agree</strong>,
+      and says plainly when they do not.
+    </p>
+  </div>
+
+  <form id="blueprint-form" action="/generate" method="post" autocomplete="off" novalidate>
+
+    <section class="panel">
+      <div class="panel__head"><h2 class="panel__title">Birth</h2></div>
+      <div class="panel__body">
+        <div class="field">
+          <label for="name">Name <span class="opt">(optional, used on the cover)</span></label>
+          <input type="text" id="name" name="name" maxlength="80" placeholder="Your name" />
+        </div>
+
+        <div class="grid grid--2">
+          <div class="field">
+            <label for="birth_date">Date of birth <span class="req">*</span></label>
+            <input type="date" id="birth_date" name="birth_date" required />
+          </div>
+          <div class="field">
+            <label for="birth_time">Time of birth, 24h <span class="req">*</span></label>
+            <input type="time" id="birth_time" name="birth_time" required step="60" />
+          </div>
+        </div>
+        <p class="hint">
+          The ascendant moves about one degree every four minutes. Ten minutes of
+          drift can change the rising nakshatra pada and several KP sub-divisions.
+          Give the most accurate time you have.
+        </p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel__head"><h2 class="panel__title">Place</h2></div>
+      <div class="panel__body" data-person="single">
+        <div class="field">
+          <div class="segmented" role="tablist" aria-label="How to give the birthplace">
+            <button type="button" role="tab" aria-selected="true" data-tab="city">City</button>
+            <button type="button" role="tab" aria-selected="false" data-tab="manual">Coordinates</button>
+          </div>
+        </div>
+
+        <div data-panel="city">
+          <div class="field">
+            <label for="city">Birthplace</label>
+            <input type="text" list="city-list" id="city" name="city" placeholder="Start typing&hellip;" autocomplete="off" />
+            <p class="hint">The city table is embedded. Nothing leaves the server to look it up.</p>
+          </div>
+        </div>
+
+        <div data-panel="manual" class="panel-hidden">
+          <div class="field">
+            <label for="manual_label">Place label</label>
+            <input type="text" id="manual_label" name="manual_label" maxlength="80" placeholder="e.g. London, UK" />
+          </div>
+          <div class="grid grid--3">
+            <div class="field">
+              <label for="manual_lat">Latitude</label>
+              <input type="text" id="manual_lat" name="manual_lat" inputmode="decimal" placeholder="51.5074" />
+            </div>
+            <div class="field">
+              <label for="manual_lon">Longitude</label>
+              <input type="text" id="manual_lon" name="manual_lon" inputmode="decimal" placeholder="-0.1278" />
+            </div>
+            <div class="field">
+              <label for="manual_tz">UTC offset</label>
+              <input type="text" id="manual_tz" name="manual_tz" inputmode="decimal" placeholder="0" />
+            </div>
+          </div>
+          <p class="hint">Standard civil offset. If the birth fell in a DST window, subtract one hour.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button type="submit" class="btn">Cast the chart &rarr; PDF</button>
+      <a class="btn btn--ghost" href="/compatibility">Compare two charts</a>
+      <p class="hint">Rate-limited to 10 reports an hour per address.</p>
+    </div>
+  </form>
+
+  <section class="panel">
+    <div class="panel__head"><h2 class="panel__title">What the report contains</h2></div>
+    <div class="panel__body">
+      <div class="table-scroll">
+        <table class="data">
+          <tbody>
+            <tr><td class="key">Positions</td><td>Sidereal longitudes, nakshatra and pada, KP star/sub/sub-sub chain</td></tr>
+            <tr><td class="key">Dignity</td><td>Exaltation, moolatrikona, panchadha maitri, combustion, dig bala, functional nature</td></tr>
+            <tr><td class="key">Yogas</td><td>Only combinations provable from an explicit rule, each with its source text</td></tr>
+            <tr><td class="key">Divisions</td><td>D1 through D60, including the unequal Trimsamsa</td></tr>
+            <tr><td class="key">Strength</td><td>Sarvashtakavarga by house; six-fold shadbala by graha</td></tr>
+            <tr><td class="key">Timing</td><td>Vimshottari dasha, gochara, sade sati, dasha&times;transit windows</td></tr>
+            <tr><td class="key">Evidence</td><td>Every observation with its arithmetic and citation, so any line can be audited</td></tr>
+            <tr><td class="key">Withheld</td><td>Areas the chart cannot support &mdash; listed as such, not filled in</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note note--inset">
+        There is also a JSON grounding pack at <span class="mono">POST /api/grounding</span>,
+        and a CLI (<span class="mono">python -m kosma</span>), for handing a fully
+        resolved chart to an AI that is then structurally unable to invent the rest.
+      </p>
+    </div>
+  </section>
+
+  <datalist id="city-list">
+    {% for c in cities %}<option value="{{ c }}"></option>{% endfor %}
+  </datalist>
+
+</main>
+{% endblock %}

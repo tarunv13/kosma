@@ -1,0 +1,33 @@
+name: Feature request
+description: Suggest a new capability for KOSMA.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      placeholder: "I want to read the D10 (dasamsa) chart for career..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy
+      options:
+        - label: My proposal does not require persisting or logging birth data.
+          required: true
+        - label: My proposal does not introduce a third-party network call without an explicit opt-in.
+          required: true

@@ -1,0 +1,25 @@
+# One-click deploy on Render: https://render.com/docs/blueprint-spec
+#
+# Use the Deploy to Render button in the README, or: New + -> Blueprint ->
+# point at this repository. Render reads this file and provisions the service.
+#
+# pythonVersion tracks the CI matrix. The container base image was silently
+# bumped to an untested interpreter once already; keep this in step with
+# .github/workflows/ci.yml and the Dockerfile.
+services:
+  - type: web
+    name: kosma
+    runtime: python
+    plan: free
+    region: singapore           # closest to most KOSMA users; pick yours
+    branch: main
+    autoDeploy: true
+    pythonVersion: "3.12"
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn kosma.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips=* --no-access-log
+    healthCheckPath: /healthz
+    envVars:
+      # Disables Python output buffering so logs appear in real-time.
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      # Render injects $PORT itself; nothing else is required.

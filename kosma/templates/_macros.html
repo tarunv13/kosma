@@ -1,0 +1,125 @@
+{# Shared rendering helpers.
+
+   Proportion bars are drawn with block characters rather than sized elements,
+   because the app's CSP forbids inline styles and therefore server-set widths.
+   It also happens to be the right look for this interface. #}
+
+{% macro bar(score, maximum, width=18) -%}
+  {%- set filled = (((score / maximum) * width) | round(0, 'common') | int) if maximum else 0 -%}
+  {%- set filled = [[filled, 0] | max, width] | min -%}
+  <span class="bar">{{ '▓' * filled }}<span class="empty">{{ '░' * (width - filled) }}</span></span>
+{%- endmacro %}
+
+{% macro verdict_pill(verdict) -%}
+  {%- if verdict == 'supported' -%}
+    <span class="pill pill--pos">supported</span>
+  {%- elif verdict == 'under strain' -%}
+    <span class="pill pill--neg">under strain</span>
+  {%- elif 'contested' in verdict -%}
+    <span class="pill pill--mix">contested</span>
+  {%- else -%}
+    <span class="pill pill--off">{{ verdict }}</span>
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro dosha_pill(dosha) -%}
+  {%- if not dosha.present -%}
+    <span class="pill pill--pos">absent</span>
+  {%- elif dosha.cancelled -%}
+    <span class="pill pill--mix">cancelled</span>
+  {%- else -%}
+    <span class="pill pill--neg">present</span>
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro sign(polarity) -%}
+  {%- if polarity > 0 -%}<span class="sign sign--pos">+</span>
+  {%- elif polarity < 0 -%}<span class="sign sign--neg">&minus;</span>
+  {%- else -%}<span class="sign sign--neu">=</span>{%- endif -%}
+{%- endmacro %}
+
+{% macro ledger_table(items) -%}
+<div class="table-scroll">
+  <table class="data ledger">
+    <thead>
+      <tr><th>Id</th><th></th><th>Factor</th><th>Observation</th><th>Basis and source</th></tr>
+    </thead>
+    <tbody>
+      {% for e in items %}
+      <tr>
+        <td class="eid">{{ e.id }}{% if e.disputed %} <span class="flag" title="disputed between authorities">&#9888;</span>{% endif %}</td>
+        <td>{{ sign(e.polarity) }}</td>
+        <td class="eid">{{ e.kind.replace('_', ' ') }}</td>
+        <td>{{ e.statement }}</td>
+        <td class="basis">{{ e.basis }}<br /><span class="src">{{ e.source }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{%- endmacro %}
+
+{% macro person_fields(tag, label) -%}
+<section class="panel person" data-person="{{ tag }}">
+  <div class="panel__head">
+    <span class="person__tag">{{ tag | upper }}</span>
+    <h2 class="panel__title">{{ label }}</h2>
+  </div>
+  <div class="panel__body">
+    <div class="field">
+      <label for="{{ tag }}_name">Name <span class="opt">(for the report)</span></label>
+      <input type="text" id="{{ tag }}_name" name="{{ tag }}_name" maxlength="60"
+             placeholder="{{ label }}" autocomplete="off" />
+    </div>
+
+    <div class="grid grid--2">
+      <div class="field">
+        <label for="{{ tag }}_date">Date of birth <span class="req">*</span></label>
+        <input type="date" id="{{ tag }}_date" name="{{ tag }}_date" required />
+      </div>
+      <div class="field">
+        <label for="{{ tag }}_time">Time (24h) <span class="req">*</span></label>
+        <input type="time" id="{{ tag }}_time" name="{{ tag }}_time" required step="60" />
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="segmented" role="tablist" aria-label="How to give the birthplace">
+        <button type="button" role="tab" aria-selected="true" data-tab="city">City</button>
+        <button type="button" role="tab" aria-selected="false" data-tab="manual">Coordinates</button>
+      </div>
+    </div>
+
+    <div data-panel="city">
+      <div class="field">
+        <label for="{{ tag }}_city">Birthplace</label>
+        <input type="text" list="city-list" id="{{ tag }}_city" name="{{ tag }}_city"
+               placeholder="Start typing&hellip;" autocomplete="off" />
+      </div>
+    </div>
+
+    <div data-panel="manual" class="panel-hidden">
+      <div class="field">
+        <label for="{{ tag }}_label">Place label</label>
+        <input type="text" id="{{ tag }}_label" name="{{ tag }}_label" maxlength="60"
+               placeholder="e.g. London, UK" />
+      </div>
+      <div class="grid grid--3">
+        <div class="field">
+          <label for="{{ tag }}_lat">Latitude</label>
+          <input type="text" id="{{ tag }}_lat" name="{{ tag }}_lat" inputmode="decimal" placeholder="51.5074" />
+        </div>
+        <div class="field">
+          <label for="{{ tag }}_lon">Longitude</label>
+          <input type="text" id="{{ tag }}_lon" name="{{ tag }}_lon" inputmode="decimal" placeholder="-0.1278" />
+        </div>
+        <div class="field">
+          <label for="{{ tag }}_tz">UTC offset</label>
+          <input type="text" id="{{ tag }}_tz" name="{{ tag }}_tz" inputmode="decimal" placeholder="0" />
+        </div>
+      </div>
+      <p class="hint">Use the standard civil offset. If the birth fell in a DST window, subtract one hour.</p>
+    </div>
+  </div>
+</section>
+{%- endmacro %}

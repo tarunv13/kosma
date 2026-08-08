@@ -1,0 +1,65 @@
+name: Bug report
+description: Something isn't working as documented or expected.
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. **Do not include real birth data of yourself
+        or others**, including their date / time / place of birth, in this
+        report. Use a synthetic example.
+
+  - type: input
+    id: version
+    attributes:
+      label: KOSMA version
+      placeholder: "0.2.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where did you observe this?
+      options:
+        - Local dev (uvicorn)
+        - Docker
+        - Hosted instance
+        - Tests / CI
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: Minimal steps. Use a synthetic chart, not a real one.
+      placeholder: |
+        1. Run `uvicorn kosma.main:app`
+        2. POST to /generate with: birth_date=1990-01-01, birth_time=12:00, city="Mumbai, India"
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      placeholder: |
+        OS:        macOS 14 / Ubuntu 24 / ...
+        Python:    3.11.x
+        Browser:   Chrome 130 / Firefox 132 / ...
