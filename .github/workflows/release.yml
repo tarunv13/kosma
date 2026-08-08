@@ -1,0 +1,76 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+# Least privilege: the job publishes a Release and does nothing else.
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # full history so the changelog extractor sees prior tags
+
+      - name: Verify tag matches kosma.__version__
+        id: version
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          tag_no_v="${tag#v}"
+          file_version=$(grep -E '^__version__' kosma/__init__.py | sed -E 's/.*"([^"]+)".*/\1/')
+          echo "Tag:      $tag_no_v"
+          echo "kosma:    $file_version"
+          if [ "$tag_no_v" != "$file_version" ]; then
+            echo "::error::tag $tag does not match kosma/__init__.py __version__=$file_version"
+            exit 1
+          fi
+          echo "version=$tag_no_v" >> "$GITHUB_OUTPUT"
+
+      - name: Extract release notes from CHANGELOG.md
+        id: notes
+        run: |
+          set -euo pipefail
+          version="${{ steps.version.outputs.version }}"
+          # Pull the section under "## [X.Y.Z] - YYYY-MM-DD" up to the next "## ".
+          #
+          # Matched as a literal prefix, not a regex. A version in brackets is
+          # a character class to awk -- "^## [0.3.0]" matches "## 0", "## ."
+          # and "## 3" but never the actual heading -- so the regex form of
+          # this step silently produced the generic fallback for every release.
+          awk -v head="## [$version]" '
+            index($0, head) == 1 {flag=1; next}
+            flag && /^## / {exit}
+            flag {print}
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "No CHANGELOG section for $version; using a generic note." >&2
+            echo "See CHANGELOG.md for details." > release-notes.md
+          fi
+          echo "----- release-notes.md -----"
+          cat release-notes.md
+
+      # Published with the preinstalled gh CLI rather than a third-party action.
+      # This step holds `contents: write` on a tag push, which is the most
+      # privileged moment in the repository; a marketplace action there means
+      # trusting someone else's release process not to be compromised. gh ships
+      # on the runner and needs no added trust.
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "KOSMA ${GITHUB_REF_NAME}" \
+            --notes-file release-notes.md \
+            --verify-tag
