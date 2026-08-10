@@ -33,6 +33,8 @@ function FindingRow({ finding, onFocus }: { finding: Finding; onFocus: () => voi
     s.chart?.houses.find((h) => h.house === finding.house),
   );
   const cited = evidence.filter((e) => finding.citations.includes(e.id));
+  const labels = useChartStore((s) => s.chart?.kind_labels ?? {});
+  const plain = finding.plain;
 
   return (
     <div
@@ -47,17 +49,28 @@ function FindingRow({ finding, onFocus }: { finding: Finding; onFocus: () => voi
           {finding.topic}
         </span>
         {verdictChip(finding.verdict)}
-        <span className="font-mono text-micro font-medium text-ink-2">
-          {finding.confidence}
-        </span>
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center gap-2 pl-10">
-        {finding.kinds.map((k) => (
-          <span key={k} className="chip chip-muted">
-            {k.replace(/_/g, " ")}
-          </span>
+      {/*
+        The reading, in ordinary English, before any of the machinery. This is
+        what someone who has not read Parashara came for; the verdict word, the
+        factor kinds and the ledger are all still here, one disclosure away.
+      */}
+      <div className="mt-3 pl-10">
+        <p className="text-base font-medium leading-relaxed text-ink">
+          {plain.headline}
+        </p>
+        {plain.body.map((line) => (
+          <p key={line} className="mt-2 text-base leading-relaxed text-ink-2">
+            {line}
+          </p>
         ))}
+        <p className="mt-3 border-l-2 border-slate-300 pl-3 text-meta leading-relaxed text-ink-2">
+          {plain.limit}
+        </p>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2 pl-10">
         <button
           type="button"
           onClick={() => setDossier((v) => !v)}
@@ -70,7 +83,9 @@ function FindingRow({ finding, onFocus }: { finding: Finding; onFocus: () => voi
           onClick={() => setOpen((v) => !v)}
           className="font-mono text-micro font-medium text-ink-2 underline decoration-slate-400 underline-offset-4 transition-colors hover:text-gold"
         >
-          {open ? "hide evidence" : `${finding.citations.length} cites`}
+          {open
+            ? "hide the chart evidence"
+            : `show the chart evidence (${finding.citations.length})`}
         </button>
       </div>
 
@@ -90,6 +105,22 @@ function FindingRow({ finding, onFocus }: { finding: Finding; onFocus: () => voi
           animate={{ opacity: 1, height: "auto" }}
           className="mt-3 space-y-2 overflow-hidden rounded-xl bg-wash p-4 pl-6"
         >
+          <li className="mb-1 border-b border-hair pb-3">
+            <span className="font-mono text-micro font-bold uppercase tracking-wider text-ink-2">
+              {finding.confidence}
+            </span>
+            <span className="mt-1 block text-meta leading-relaxed text-ink-2">
+              {finding.verdict}
+            </span>
+            <span className="mt-2 flex flex-wrap gap-1.5">
+              {/* The factor kinds, named in English rather than in schema keys. */}
+              {finding.kinds.map((k) => (
+                <span key={k} className="chip chip-muted" title={k}>
+                  {labels[k] ?? k.replace(/_/g, " ")}
+                </span>
+              ))}
+            </span>
+          </li>
           {cited.map((e) => (
             <li key={e.id} className="text-meta leading-relaxed text-ink-2">
               <span className="font-mono text-micro font-bold text-ink-2">{e.id}</span>{" "}
@@ -212,7 +243,23 @@ export default function EvidencePanel() {
                       {chart.houses.find((h) => h.house === w.house)?.sign}
                     </span>
                   </div>
-                  <p className="text-meta leading-relaxed text-ink-2">{w.reason}</p>
+                  {/* Plain first here too: a refusal is the easiest thing in
+                      this interface to mistake for a bug, so it gets said in
+                      full sentences before the technical reason. */}
+                  <p className="text-base font-medium leading-relaxed text-ink">
+                    {w.plain.headline}
+                  </p>
+                  {w.plain.body.map((line) => (
+                    <p
+                      key={line}
+                      className="mt-2 text-meta leading-relaxed text-ink-2"
+                    >
+                      {line}
+                    </p>
+                  ))}
+                  <p className="mt-3 border-l-2 border-neg/30 pl-3 font-mono text-micro leading-relaxed text-ink-2">
+                    {w.reason}
+                  </p>
                   <WithheldDossier house={w.house} />
                 </div>
               ))}

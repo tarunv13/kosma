@@ -6,7 +6,7 @@
  * runtime so a stale client fails loudly instead of rendering nonsense.
  */
 
-export const SUPPORTED_CONTRACT = "1.1";
+export const SUPPORTED_CONTRACT = "1.2";
 
 export interface ChartMeta {
   generator: string;
@@ -174,6 +174,28 @@ export interface Dashas {
   timeline: DashaPeriod[];
 }
 
+/**
+ * The same finding said in ordinary English.
+ *
+ * Built server-side from the very evidence entries the finding cites, so it
+ * cannot describe a chart the ledger does not support. The technical fields
+ * above it are not replaced -- they move one click away.
+ */
+export interface PlainReading {
+  house: number;
+  topic: string;
+  /** The fuller description of the area of life this house covers. */
+  governs: string;
+  /** One sentence: the shape of this house's answer. */
+  headline: string;
+  /** Two or three sentences narrating the evidence. */
+  body: string[];
+  /** What this reading does not claim. */
+  limit: string;
+  /** The natural significator, and what reading it alongside adds. */
+  karaka_note: string;
+}
+
 export interface Finding {
   house: number;
   topic: string;
@@ -181,12 +203,14 @@ export interface Finding {
   confidence: string;
   kinds: string[];
   citations: string[];
+  plain: PlainReading;
 }
 
 export interface Withheld {
   house: number;
   topic: string;
   reason: string;
+  plain: PlainReading;
 }
 
 export interface EvidenceItem {
@@ -223,6 +247,10 @@ export interface ChartResponse {
   withheld: Withheld[];
   evidence: EvidenceItem[];
   gate: { rule: string; minimum_agreeing_kinds: number };
+  /** Term -> plain meaning, so jargon can be glossed where it appears. */
+  glossary: Record<string, string>;
+  /** Factor kind -> the plain name for it, e.g. "aspect" -> "planets looking at this house". */
+  kind_labels: Record<string, string>;
   disclaimer: string;
 }
 

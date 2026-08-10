@@ -3,24 +3,32 @@
 # Use the Deploy to Render button in the README, or: New + -> Blueprint ->
 # point at this repository. Render reads this file and provisions the service.
 #
-# pythonVersion tracks the CI matrix. The container base image was silently
-# bumped to an untested interpreter once already; keep this in step with
-# .github/workflows/ci.yml and the Dockerfile.
+# Built from the Dockerfile rather than the native Python runtime. The client
+# is a Next.js bundle that has to be compiled before the Python process can
+# serve it, and the multi-stage Dockerfile does that in a Node stage and copies
+# only the compiled output into the final image. Going through Docker also
+# means CI builds and smoke-runs the exact artifact this deploys -- the native
+# runtime would have been a second, untested build path whose success depended
+# on Node happening to be present in Render's Python image.
+#
+# If this is ever moved back to `runtime: python`, note that the interpreter is
+# selected by a PYTHON_VERSION environment variable, not by a `pythonVersion`
+# key -- that key is silently ignored, which is a slow way to discover you are
+# running on whatever default the platform picked.
 services:
   - type: web
     name: kosma
-    runtime: python
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     plan: free
-    region: singapore           # closest to most KOSMA users; pick yours
+    region: singapore # closest to most KOSMA users; pick yours
     branch: main
     autoDeploy: true
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn kosma.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips=* --no-access-log
     healthCheckPath: /healthz
     envVars:
-      - key: PYTHON_VERSION
-        value: "3.12"
       # Disables Python output buffering so logs appear in real-time.
       - key: PYTHONUNBUFFERED
         value: "1"
-      # Render injects $PORT itself; nothing else is required.
+      # Render injects $PORT and the container's CMD expands it, so the port
+      # is not pinned here. Nothing else is required.

@@ -129,6 +129,26 @@ jobs:
             fi
             sleep 1
           done
+          # healthz only proves Python started. The image also has to be
+          # serving the compiled React client: if the Node build stage silently
+          # produced nothing, the app falls back to the server-rendered form
+          # and every route still answers 200. That fallback is deliberate, but
+          # it must never be what ships -- so assert the bundle specifically.
+          if [ "$exit_code" = "0" ]; then
+            echo "--- checking the client bundle is the thing being served ---"
+            body=$(curl -fsS http://127.0.0.1:8000/ || true)
+            if ! printf '%s' "$body" | grep -q '/_next/static/'; then
+              echo "::error::/ served no Next.js bundle; the web build stage produced nothing"
+              exit_code=1
+            else
+              echo "client bundle ok"
+            fi
+            for path in /compare /legacy /healthz; do
+              code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8000$path")
+              echo "  $path -> $code"
+              [ "$code" = "200" ] || { echo "::error::$path returned $code"; exit_code=1; }
+            done
+          fi
           echo "--- container logs ---"
           docker logs kosma-ci 2>&1 || echo "(container produced no output)"
           echo "--- exit state ---"

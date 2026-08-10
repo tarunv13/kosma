@@ -27,6 +27,21 @@ RUN python -m venv /opt/venv \
  && /opt/venv/bin/pip install --upgrade pip \
  && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
 
+# ── web builder ──────────────────────────────────────────────────────
+# The React client is a static bundle: it is compiled here and copied into the
+# runtime image as plain files, so Node exists at build time only and never
+# ships in the final layer.
+FROM node:22-slim AS webbuilder
+
+WORKDIR /web
+
+# Dependencies first, so a change to source does not re-resolve the tree.
+COPY web/package.json web/package-lock.json ./
+RUN npm ci
+
+COPY web/ ./
+RUN npm run build
+
 # ── runtime ──────────────────────────────────────────────────────────
 FROM python:3.12-slim AS runtime
 
@@ -47,6 +62,8 @@ WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
 COPY --chown=kosma:kosma kosma /app/kosma
 COPY --chown=kosma:kosma pyproject.toml LICENSE README.md /app/
+# Just the compiled output -- no node_modules, no source, no toolchain.
+COPY --from=webbuilder --chown=kosma:kosma /web/out /app/web/out
 
 USER kosma
 
@@ -57,9 +74,14 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 
 # proxy-headers + forwarded-allow-ips lets a reverse proxy pass real client IPs
 # to the rate limiter; --no-access-log keeps form requests out of the log.
-CMD ["uvicorn", "kosma.main:app", \
-     "--host", "0.0.0.0", \
-     "--port", "8000", \
-     "--proxy-headers", \
-     "--forwarded-allow-ips=*", \
-     "--no-access-log"]
+#
+# Shell form so ${PORT} expands: platforms that assign a port at runtime
+# (Render among them) inject it as an environment variable, and a container
+# that hard-codes 8000 is unreachable there. Falls back to 8000 so `docker run`
+# with no environment still works, which is what CI does.
+CMD uvicorn kosma.main:app \
+      --host 0.0.0.0 \
+      --port "${PORT:-8000}" \
+      --proxy-headers \
+      --forwarded-allow-ips='*' \
+      --no-access-log

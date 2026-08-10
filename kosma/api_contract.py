@@ -24,6 +24,7 @@ from typing import Any
 from . import ashtakavarga as av
 from . import interpretations as interp
 from . import nakshatras as nak
+from . import plainspeak
 from . import shadbala as sb
 from . import vargas as vg
 from . import vedic_engine as ve
@@ -34,7 +35,22 @@ from .grounding import AYANAMSA, HOUSE_SYSTEM
 from .vargas import d9
 from .yogas import detect_yogas
 
-CONTRACT_VERSION = "1.1"
+CONTRACT_VERSION = "1.2"
+
+
+def _ledger_dict(e) -> dict:
+    """One evidence entry as it crosses the wire."""
+    return {
+        "id": e.id,
+        "house": e.house,
+        "kind": e.kind,
+        "statement": e.statement,
+        "basis": e.basis,
+        "source": e.source,
+        "polarity": e.polarity,
+        "disputed": e.disputed,
+    }
+
 
 GLYPHS: dict[str, str] = {
     "Sun": "Su",
@@ -375,27 +391,37 @@ def build_chart_payload(
                 "confidence": f.confidence,
                 "kinds": list(f.distinct_kinds),
                 "citations": list(f.citations),
+                # The same finding said in ordinary English. Built from the
+                # ledger entries this finding already cites, so the prose and
+                # the evidence can never drift apart.
+                "plain": plainspeak.house_reading(
+                    f.house,
+                    f.topic,
+                    f.verdict,
+                    f.confidence,
+                    [_ledger_dict(e) for e in ev.ledger if e.id in set(f.citations)],
+                ).as_dict(),
             }
             for f in ev.findings
         ],
-        "withheld": [{"house": w.house, "topic": w.topic, "reason": w.reason} for w in ev.withheld],
-        "evidence": [
+        "withheld": [
             {
-                "id": e.id,
-                "house": e.house,
-                "kind": e.kind,
-                "statement": e.statement,
-                "basis": e.basis,
-                "source": e.source,
-                "polarity": e.polarity,
-                "disputed": e.disputed,
+                "house": w.house,
+                "topic": w.topic,
+                "reason": w.reason,
+                "plain": plainspeak.withheld_reading(w.house, w.topic, w.reason),
             }
-            for e in ev.ledger
+            for w in ev.withheld
         ],
+        "evidence": [_ledger_dict(e) for e in ev.ledger],
         "gate": {
             "rule": ev.gate,
             "minimum_agreeing_kinds": ev.min_distinct_kinds,
         },
+        # Plain meanings for the Sanskrit and the jargon, so a term can be
+        # explained where it appears instead of on a page nobody visits.
+        "glossary": plainspeak.GLOSSARY,
+        "kind_labels": plainspeak.KIND_LABEL,
         "disclaimer": (
             "Computed in memory and not stored. For reflection; not medical, "
             "legal, financial or psychological advice."

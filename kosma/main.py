@@ -11,9 +11,11 @@ Privacy posture:
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import logging
 import os
+import re
 import secrets
 import sys
 import traceback
@@ -21,7 +23,13 @@ from datetime import UTC, date, datetime
 
 from fastapi import FastAPI, Form, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.responses import (
+    FileResponse,
+    HTMLResponse,
+    JSONResponse,
+    RedirectResponse,
+    Response,
+)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -102,6 +110,89 @@ _HERE = os.path.dirname(__file__)
 app.mount("/static", StaticFiles(directory=os.path.join(_HERE, "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(_HERE, "templates"))
 
+# ── The React client, served as a static bundle ───────────────────────
+#
+# `next build` with output: "export" writes plain HTML/JS/CSS to web/out.
+# Serving it from this process rather than a second Node service means one
+# origin, so the client's fetch("/api/chart") is same-origin and CORS never
+# applies in production; one deploy; and no server-side rendering to pay for.
+#
+# If the directory is absent -- a source checkout where nobody has run the
+# frontend build -- every route below still works and "/" falls back to the
+# server-rendered Jinja form. The app must not require a Node toolchain to
+# start.
+_WEB_OUT = os.environ.get("KOSMA_WEB_OUT") or os.path.join(os.path.dirname(_HERE), "web", "out")
+_HAS_SPA = os.path.isdir(_WEB_OUT) and os.path.isfile(os.path.join(_WEB_OUT, "index.html"))
+
+
+# Matches <script> blocks with no src= attribute, i.e. ones with a body.
+_INLINE_SCRIPT_RE = re.compile(r"<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>", re.S)
+
+# Route -> (mtime the hashes were derived from, the hashes).
+_SPA_CSP_HASHES: dict[str, tuple[float, str]] = {}
+
+_SPA_PAGES: dict[str, str] = {
+    "/": "index.html",
+    "/compare": os.path.join("compare", "index.html"),
+}
+
+
+def _inline_script_hashes(route: str) -> str:
+    """CSP source-expressions for the inline scripts in one exported page.
+
+    Next.js streams its payload through inline <script> blocks, which
+    `script-src 'self'` refuses. The usual escapes are a nonce -- impossible
+    without a server rendering each response -- or 'unsafe-inline', which
+    switches the protection off for every script on the page.
+
+    A static bundle has a third option the other two do not: the scripts are
+    fixed bytes on disk, so their hashes can be computed and allowlisted
+    exactly. Anything injected later hashes differently and is refused.
+
+    Keyed on the file's mtime rather than computed once at import. Deriving
+    the policy from a page and then serving a different page is a silent
+    failure -- the browser refuses every script and the screen simply stays
+    blank, with the reason buried in a console nobody has open. Restating the
+    hashes whenever the file changes costs one stat() per page request and
+    makes the failure impossible.
+    """
+    page = _SPA_PAGES.get(route)
+    if page is None:
+        return ""
+    path = os.path.join(_WEB_OUT, page)
+    try:
+        mtime = os.path.getmtime(path)
+    except OSError:
+        return ""
+    cached = _SPA_CSP_HASHES.get(route)
+    if cached and cached[0] == mtime:
+        return cached[1]
+    try:
+        with open(path, encoding="utf-8") as fh:
+            html = fh.read()
+    except OSError:
+        return ""
+    out = []
+    for match in _INLINE_SCRIPT_RE.finditer(html):
+        digest = hashlib.sha256(match.group(1).encode("utf-8")).digest()
+        out.append(f"'sha256-{base64.b64encode(digest).decode('ascii')}'")
+    joined = " ".join(out)
+    _SPA_CSP_HASHES[route] = (mtime, joined)
+    return joined
+
+
+if _HAS_SPA:
+    # The bundle's own JS and CSS. Everything under /_next/static carries a
+    # content hash in its filename, so it is safe to cache hard and for a
+    # long time -- a rebuild changes the name rather than the contents at a
+    # name. This is the one part of the site that should be cached; the pages
+    # and the API are all no-store.
+    app.mount(
+        "/_next",
+        StaticFiles(directory=os.path.join(_WEB_OUT, "_next")),
+        name="next-assets",
+    )
+
 
 # ── Security headers middleware ───────────────────────────────────────
 
@@ -118,20 +209,36 @@ async def security_headers(request: Request, call_next):
     response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
     # Version banners help nobody but a scanner.
     response.headers["Server"] = "kosma"
+    script_src = "'self'"
+    if _HAS_SPA:
+        extra = _inline_script_hashes(request.url.path.rstrip("/") or "/")
+        if extra:
+            script_src = f"{script_src} {extra}"
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
         "img-src 'self' data:; "
         "style-src 'self'; "
-        "script-src 'self'; "
+        # React prerenders Framer Motion's opening state as a style attribute,
+        # so the markup carries style="opacity:0;transform:...". Allowing
+        # attributes is a much narrower grant than 'unsafe-inline' on
+        # style-src, which this deliberately leaves alone: <style> blocks and
+        # stylesheets from anywhere but this origin are still refused, and a
+        # style attribute cannot execute script.
+        "style-src-attr 'unsafe-inline'; "
+        f"script-src {script_src}; "
+        "connect-src 'self'; "
         "form-action 'self'; "
         "base-uri 'self'; "
+        "object-src 'none'; "
         "frame-ancestors 'none';"
     )
     # Cache: never cache the form or generated PDFs
     if request.url.path in (
         "/",
+        "/compare",
         "/generate",
-        "/compatibility",
+        "/legacy",
+        "/legacy/compatibility",
         "/api/chart",
         "/api/compatibility",
         "/api/grounding",
@@ -144,9 +251,48 @@ async def security_headers(request: Request, call_next):
 # ── Routes ────────────────────────────────────────────────────────────
 
 
+def _spa(page: str) -> FileResponse:
+    """Return one of the exported React pages."""
+    return FileResponse(os.path.join(_WEB_OUT, page), media_type="text/html")
+
+
 @app.get("/", response_class=HTMLResponse)
 @limiter.limit("120/hour")
 async def index(request: Request):
+    # The React client when it has been built, the server-rendered form when
+    # it has not. Both talk to the same engine.
+    if _HAS_SPA:
+        return _spa("index.html")
+    return templates.TemplateResponse(
+        request,
+        "index.html",
+        {
+            "cities": cities.city_names(),
+            "year": datetime.now(UTC).year,
+        },
+    )
+
+
+@app.get("/compare", response_class=HTMLResponse)
+@limiter.limit("120/hour")
+async def compare_page(request: Request):
+    """The relationship comparison view of the React client."""
+    if not _HAS_SPA:
+        # Without the bundle this is the server-rendered equivalent.
+        return RedirectResponse("/legacy/compatibility", status_code=307)
+    return _spa(os.path.join("compare", "index.html"))
+
+
+@app.get("/legacy", response_class=HTMLResponse)
+@limiter.limit("120/hour")
+async def legacy_index(request: Request):
+    """The no-JavaScript form.
+
+    Kept as a real route, not a relic: it is the only way to use KOSMA with
+    scripting disabled, and it is what answers when the frontend has not been
+    built. The engine, the gate and the PDF are identical -- only the surface
+    differs.
+    """
     return templates.TemplateResponse(
         request,
         "index.html",
@@ -382,7 +528,7 @@ def _dedupe(labels: list[str]) -> list[str]:
     return out
 
 
-@app.get("/compatibility", response_class=HTMLResponse)
+@app.get("/legacy/compatibility", response_class=HTMLResponse)
 @limiter.limit("120/hour")
 async def compatibility_form(request: Request):
     return templates.TemplateResponse(
@@ -392,7 +538,7 @@ async def compatibility_form(request: Request):
     )
 
 
-@app.post("/compatibility", response_class=HTMLResponse)
+@app.post("/legacy/compatibility", response_class=HTMLResponse)
 @limiter.limit("10/hour")
 async def compatibility_compare(request: Request):
     """Compare two or three charts. Same posture as everything else here:

@@ -59,6 +59,8 @@ def test_top_level_shape(payload: dict) -> None:
         "withheld",
         "evidence",
         "gate",
+        "glossary",
+        "kind_labels",
         "disclaimer",
     }
     assert set(payload) == expected

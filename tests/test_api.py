@@ -220,14 +220,14 @@ TRIO_FORM = {
 
 
 def test_compatibility_form_renders(client: TestClient) -> None:
-    r = client.get("/compatibility")
+    r = client.get("/legacy/compatibility")
     assert r.status_code == 200
     assert "Compatibility" in r.text
     assert "birth caste" in r.text, "the varna framing must be on the page"
 
 
 def test_compatibility_pair(client: TestClient) -> None:
-    r = client.post("/compatibility", data=PAIR_FORM)
+    r = client.post("/legacy/compatibility", data=PAIR_FORM)
     assert r.status_code == 200
     assert "Epoch A" in r.text and "Epoch B" in r.text
     assert "Findings" in r.text
@@ -237,26 +237,26 @@ def test_compatibility_pair(client: TestClient) -> None:
 
 def test_compatibility_leads_with_findings_not_the_score(client: TestClient) -> None:
     """Evidence first was a deliberate call; keep it that way."""
-    body = client.post("/compatibility", data=PAIR_FORM).text
+    body = client.post("/legacy/compatibility", data=PAIR_FORM).text
     assert body.index("Findings") < body.index("Ashtakoota")
 
 
 def test_compatibility_trio_is_pairwise(client: TestClient) -> None:
-    r = client.post("/compatibility", data=TRIO_FORM)
+    r = client.post("/legacy/compatibility", data=TRIO_FORM)
     assert r.status_code == 200
     for pair in ("Epoch A &amp; Epoch B", "Epoch A &amp; Epoch C", "Epoch B &amp; Epoch C"):
         assert pair in r.text
 
 
 def test_friendship_mode_hides_the_marriage_kootas(client: TestClient) -> None:
-    body = client.post("/compatibility", data=TRIO_FORM).text
+    body = client.post("/legacy/compatibility", data=TRIO_FORM).text
     assert "Maitri factors" in body
     assert "not a classical named scheme" in body
 
 
 def test_compatibility_error_is_html_and_does_not_echo_input(client: TestClient) -> None:
     bad = {**PAIR_FORM, "a_date": "not-a-date"}
-    r = client.post("/compatibility", data=bad)
+    r = client.post("/legacy/compatibility", data=bad)
     assert r.status_code == 400
     assert r.headers["content-type"].startswith("text/html")
     assert "Epoch A" not in r.text
@@ -265,13 +265,13 @@ def test_compatibility_error_is_html_and_does_not_echo_input(client: TestClient)
 
 
 def test_compatibility_rejects_unknown_mode(client: TestClient) -> None:
-    r = client.post("/compatibility", data={**PAIR_FORM, "mode": "soulmate"})
+    r = client.post("/legacy/compatibility", data={**PAIR_FORM, "mode": "soulmate"})
     assert r.status_code == 400
 
 
 def test_duplicate_names_stay_addressable(client: TestClient) -> None:
     same = {**PAIR_FORM, "a_name": "Sam", "b_name": "Sam"}
-    r = client.post("/compatibility", data=same)
+    r = client.post("/legacy/compatibility", data=same)
     assert r.status_code == 200
     assert "Sam (2)" in r.text
 
