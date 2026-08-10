@@ -34,11 +34,97 @@ from reportlab.platypus import (
 from . import ashtakavarga as av
 from . import evidence as ev
 from . import interpretations as interp
+from . import numerology as numero
+from . import placements as plc
 from . import shadbala as sb
 from . import transits as tr
 from . import vedic_engine as ve
 from . import yogas as yg
 from .vedic_engine import Chart, Panchanga
+
+# ── Planet symbols, and the refusal to print a box ────────────────────
+#
+# ReportLab's built-in Helvetica is Type 1 with WinAnsi encoding, and none of
+# U+2609..U+264F is in it. Asking for ☉ does not fail -- it silently draws
+# the notdef glyph, so every planet in the report comes out as an identical
+# black box. That was the state of this file: symbols requested, boxes
+# delivered.
+#
+# So a TrueType face carrying the glyphs is registered when one can be found,
+# and *the symbol is only ever emitted if the font really has it*. Where it
+# does not, the two-letter abbreviation is used instead. A reader may see "Sa"
+# rather than ♄ on a machine with no suitable font, which is a small loss; a
+# reader must never see ■, which is a defect.
+
+SYMBOLS: dict[str, str] = {
+    "Sun": "\u2609",
+    "Moon": "\u263d",
+    "Mars": "\u2642",
+    "Mercury": "\u263f",
+    "Jupiter": "\u2643",
+    "Venus": "\u2640",
+    "Saturn": "\u2644",
+    "Rahu": "\u260a",
+    "Ketu": "\u260b",
+}
+
+ABBREV: dict[str, str] = {
+    "Sun": "Su",
+    "Moon": "Mo",
+    "Mars": "Ma",
+    "Mercury": "Me",
+    "Jupiter": "Ju",
+    "Venus": "Ve",
+    "Saturn": "Sa",
+    "Rahu": "Ra",
+    "Ketu": "Ke",
+}
+
+# Debian ships DejaVu in fonts-dejavu-core, which the Dockerfile installs;
+# Segoe UI Symbol covers Windows; the rest are common fallbacks. First hit
+# wins, and none being present is a supported outcome.
+_FONT_CANDIDATES = (
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/truetype/freefont/FreeSerif.ttf",
+    "/Library/Fonts/Arial Unicode.ttf",
+    "C:\\Windows\\Fonts\\seguisym.ttf",
+    "C:\\Windows\\Fonts\\arialuni.ttf",
+)
+
+SYMBOL_FONT: str | None = None
+
+
+def _register_symbol_font() -> str | None:
+    """Find a face that actually carries the graha glyphs, or return None."""
+    import os
+
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+
+    for path in _FONT_CANDIDATES:
+        if not os.path.exists(path):
+            continue
+        name = "KosmaSymbols"
+        try:
+            pdfmetrics.registerFont(TTFont(name, path))
+            # A face missing these renders every one at the same notdef width.
+            widths = {pdfmetrics.stringWidth(s, name, 10) for s in SYMBOLS.values()}
+            if len(widths) > 1:
+                return name
+        except Exception:
+            continue
+    return None
+
+
+SYMBOL_FONT = _register_symbol_font()
+
+
+def _sigil(planet: str) -> str:
+    """The symbol where it will render, the abbreviation where it will not."""
+    if SYMBOL_FONT:
+        return f'<font face="{SYMBOL_FONT}">{SYMBOLS[planet]}</font>'
+    return ABBREV[planet]
+
 
 # ── Colour palette ────────────────────────────────────────────────────
 
@@ -296,7 +382,10 @@ def _chart_wheel(natal, size_cm: float = 11.0) -> Drawing:
             px, py = _wheel_xy(cx, cy, p.longitude, r)
             glyph = PLANET_GLYPH[name]
             if p.retrograde:
-                glyph += "\u2832"  # tiny mark
+                # Plain "R". This was U+2832, a braille pattern chosen as a
+                # "tiny mark", which Helvetica has no glyph for -- so every
+                # retrograde planet on the wheel drew a black box instead.
+                glyph += "R"
             d.add(
                 String(
                     px,
@@ -984,7 +1073,10 @@ def _evidence_section(natal: Chart, birth_jd: float, today_jd: float, styles: di
     lrows = [["Id", "Kind", "Observation", "Basis and source"]]
     for e in report.ledger:
         mark = {1: "+", -1: "-", 0: "="}[e.polarity]
-        tag = f"{e.id} {mark}" + (" ⚠" if e.disputed else "")
+        # "[disputed]" rather than U+26A0: Helvetica has no warning sign,
+        # so the marker that flagged contested material drew a black box --
+        # exactly the material it is most important to label clearly.
+        tag = f"{e.id} {mark}" + (" [disputed]" if e.disputed else "")
         lrows.append(
             [
                 tag,
@@ -999,7 +1091,7 @@ def _evidence_section(natal: Chart, birth_jd: float, today_jd: float, styles: di
     out.append(Spacer(1, 6))
     out.append(
         Paragraph(
-            "A ⚠ marks material that is disputed between authorities. It is "
+            "A [disputed] tag marks material contested between authorities. It is "
             "shown for completeness and never counted toward the threshold.",
             styles["muted"],
         )
@@ -1048,6 +1140,205 @@ def _activation_section(natal: Chart, birth_jd: float, today_jd: float, styles: 
     t = Table(rows, colWidths=[2.3 * cm, 2.3 * cm, 2.4 * cm, 3.0 * cm, 6.8 * cm], repeatRows=1)
     t.setStyle(_grid())
     out.append(t)
+    return out
+
+
+def _placements_section(natal: Chart, styles: dict) -> list:
+    """What each graha is doing in the house it landed in.
+
+    The report previously gave positions and gave results, with nothing in
+    between: a reader could see "Saturn 27°36' Capricorn, house 10" and could
+    see a verdict, but nothing said what Saturn in the tenth house *means*.
+    """
+    dig = natal.dignities if hasattr(natal, "dignities") else None
+    out: list = [
+        PageBreak(),
+        Paragraph("Each Planet, and What It Is Doing", styles["title"]),
+        Paragraph(
+            "What the classical texts hold each graha to signify in the bhava "
+            "it occupies in this chart, the strengths it offers and the "
+            "weaknesses it carries there, how it colours temperament, and the "
+            "classical upaya for that graha. Strengths and weaknesses are "
+            "weighted by the dignity the planet actually holds here, so the "
+            "same placement does not read identically in every chart.",
+            styles["muted"],
+        ),
+        Spacer(1, 10),
+    ]
+
+    from .dignity import all_dignities
+
+    dig = all_dignities(natal)
+
+    for name in ve.VEDIC_PLANETS:
+        p = natal.planets[name]
+        d = dig[name]
+        r = plc.placement_reading(
+            name,
+            p.house,
+            p.sign,
+            d.state,
+            retrograde=p.retrograde,
+            combust=d.combust,
+        )
+        out.append(
+            Paragraph(
+                f"{_sigil(name)} &nbsp;<b>{_esc(name)}</b> in house {p.house} "
+                f"&mdash; {_esc(p.sign)}, {_esc(d.state)}"
+                + (" (retrograde)" if p.retrograde else ""),
+                styles["h2"],
+            )
+        )
+        out.append(Paragraph(_esc(r.signifies), styles["body"]))
+        out.append(
+            Paragraph(f"<b>Strengths.</b> {_esc(r.strengths)}", styles["body"])
+        )
+        out.append(
+            Paragraph(f"<b>Weaknesses.</b> {_esc(r.weaknesses)}", styles["body"])
+        )
+        out.append(Paragraph(f"<b>Temperament.</b> {_esc(r.nature)}", styles["body"]))
+        if r.notable:
+            out.append(Paragraph(_esc(r.notable), styles["muted"]))
+        out.append(Paragraph(f"<i>{_esc(r.condition)}</i>", styles["body"]))
+        out.append(
+            Paragraph(
+                f"<b>Upaya ({_esc(r.remedy['graha'])}).</b> "
+                f"{_esc(r.remedy['transliteration'])} &middot; "
+                f"{_esc(r.remedy['vara'])} &middot; daana: "
+                f"{_esc(r.remedy['daana'])} &middot; ratna: "
+                f"{_esc(r.remedy['gem'])}. {_esc(r.remedy['practical'])}",
+                styles["body"],
+            )
+        )
+        out.append(Spacer(1, 8))
+
+    out.append(
+        Paragraph(
+            _esc(plc.REMEDY_CAVEAT) + " " + _esc(plc.RATNA_CAVEAT), styles["muted"]
+        )
+    )
+    return out
+
+
+def _all_houses_section(natal: Chart, styles: dict) -> list:
+    """Every bhava's significance, including the ones the gate withheld.
+
+    Describing what a house governs is structure, not prediction, so it needs
+    no corroboration -- which is why it can be given for all twelve while the
+    findings remain gated.
+    """
+    from .aspects import house_lord, house_sign
+    from .dignity import all_dignities
+
+    dig = all_dignities(natal)
+    avr = av.compute_ashtakavarga(natal)
+
+    rows = [["House", "Governs", "Sign", "Lord · where it went", "SAV"]]
+    for h in range(1, 13):
+        lord = house_lord(natal, h)
+        lp = natal.planets[lord]
+        occupants = [n for n in ve.VEDIC_PLANETS if natal.planets[n].house == h]
+        occ = ", ".join(ABBREV[n] for n in occupants) or "—"
+        rows.append(
+            [
+                f"{h}\n{occ}",
+                ev.HOUSE_TOPICS[h],
+                house_sign(natal, h),
+                f"{lord} → h{lp.house} ({dig[lord].state})",
+                str(avr.sarva_in_house(h)),
+            ]
+        )
+
+    t = Table(
+        rows,
+        colWidths=[1.7 * cm, 5.6 * cm, 2.3 * cm, 5.2 * cm, 1.2 * cm],
+        repeatRows=1,
+    )
+    t.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), ACCENT),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("FONT", (0, 0), (-1, 0), "Helvetica-Bold", 9.5),
+                ("FONT", (0, 1), (-1, -1), "Helvetica", 8.5),
+                ("ALIGN", (4, 0), (4, -1), "CENTER"),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, BG_ALT]),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOX", (0, 0), (-1, -1), 0.25, LINE),
+            ]
+        )
+    )
+
+    out: list = [
+        PageBreak(),
+        Paragraph("All Twelve Houses", styles["title"]),
+        Paragraph(
+            "The structure of the whole chart, including the houses no reading "
+            "was given for. What a bhava governs and who rules it is not a "
+            "claim about a life, so it needs no corroboration.",
+            styles["muted"],
+        ),
+        Spacer(1, 8),
+        t,
+        Spacer(1, 12),
+    ]
+    for h in range(1, 13):
+        out.append(
+            Paragraph(
+                f"<b>House {h} &mdash; {_esc(ev.HOUSE_TOPICS[h])}.</b> "
+                f"{_esc(interp.HOUSE_GOVERNS[h])}",
+                styles["body"],
+            )
+        )
+    return out
+
+
+def _numerology_section(name: str, year: int, month: int, day: int, styles: dict) -> list:
+    """Beside the chart, and outside the gate. See kosma.numerology."""
+    from datetime import date as _date
+
+    n = numero.compute(name or "", _date(year, month, day))
+    out: list = [
+        PageBreak(),
+        Paragraph("Numerology", styles["title"]),
+        Paragraph(_esc(n["note"]), styles["muted"]),
+        Spacer(1, 8),
+    ]
+    entries = [
+        ("Mulank (root number)", n["mulank"]),
+        ("Bhagyank (destiny number)", n["bhagyank"]),
+        ("Name — Chaldean", n["name_chaldean"]),
+        ("Name — Pythagorean", n["name_pythagorean"]),
+    ]
+    rows = [["", "No.", "Graha", "Meaning"]]
+    for label, entry in entries:
+        if not entry:
+            continue
+        rows.append([label, str(entry["number"]), entry["graha"], entry["meaning"]])
+    t = Table(rows, colWidths=[4.4 * cm, 1.2 * cm, 2.0 * cm, 8.4 * cm], repeatRows=1)
+    t.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), ACCENT),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("FONT", (0, 0), (-1, 0), "Helvetica-Bold", 9.5),
+                ("FONT", (0, 1), (-1, -1), "Helvetica", 8.5),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("ALIGN", (1, 0), (1, -1), "CENTER"),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, BG_ALT]),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOX", (0, 0), (-1, -1), 0.25, LINE),
+            ]
+        )
+    )
+    out.append(t)
+    if n.get("disagreement"):
+        out += [Spacer(1, 8), Paragraph(_esc(n["disagreement"]), styles["body"])]
+    if n["name_chaldean"] or n["name_pythagorean"]:
+        out += [Spacer(1, 6), Paragraph(_esc(n["name_note"]), styles["muted"])]
     return out
 
 
@@ -1187,7 +1478,10 @@ def generate_pdf(
     story += _strength_section(natal, styles)
     story += _evidence_section(natal, birth_jd, today_jd, styles)
     story += _activation_section(natal, birth_jd, today_jd, styles)
+    story += _placements_section(natal, styles)
+    story += _all_houses_section(natal, styles)
     story += _blueprint_sections(natal, karakas, styles)
+    story += _numerology_section(name, year, month, day, styles)
     story += _disclaimer(styles)
 
     doc.build(story, onFirstPage=_footer, onLaterPages=_footer)

@@ -6,7 +6,7 @@
  * runtime so a stale client fails loudly instead of rendering nonsense.
  */
 
-export const SUPPORTED_CONTRACT = "1.2";
+export const SUPPORTED_CONTRACT = "1.3";
 
 export interface ChartMeta {
   generator: string;
@@ -31,10 +31,46 @@ export interface Ascendant {
   lord: string;
 }
 
+/** What the tradition holds one graha in one bhava to mean, for this chart. */
+export interface PlacementReading {
+  planet: string;
+  sanskrit: string;
+  house: number;
+  sign: string;
+  dignity: string;
+  /** kendra / trikona / dusthana / upachaya, as applicable. */
+  classes: string[];
+  signifies: string;
+  strengths: string;
+  weaknesses: string;
+  /** How the placement colours the person. */
+  nature: string;
+  class_note: string;
+  /** A classical particular, where one exists. Empty otherwise. */
+  notable: string;
+  /** What this chart's dignity, retrogression and combustion do to the above. */
+  condition: string;
+  remedy: {
+    graha: string;
+    mantra: string;
+    transliteration: string;
+    gem: string;
+    daana: string;
+    vara: string;
+    practical: string;
+    caveat: string;
+    ratna_caveat: string;
+  };
+}
+
 export interface Planet {
   id: string;
   name: string;
+  /** Two-letter abbreviation. Always renders, in any font. */
   glyph: string;
+  /** The astronomical symbol, shown with the abbreviation as its label. */
+  symbol: string;
+  placement: PlacementReading;
   /** Absolute sidereal longitude, 0–360. */
   long: number;
   /** Degrees per day; negative means retrograde. */
@@ -69,6 +105,7 @@ export interface Planet {
 export interface Occupant {
   name: string;
   glyph: string;
+  symbol: string;
   degree_dms: string;
   nakshatra: string;
   pada: number;
@@ -251,7 +288,39 @@ export interface ChartResponse {
   glossary: Record<string, string>;
   /** Factor kind -> the plain name for it, e.g. "aspect" -> "planets looking at this house". */
   kind_labels: Record<string, string>;
+  numerology: Numerology;
+  gender: Gender;
   disclaimer: string;
+}
+
+export type Gender = "female" | "male" | "other" | "unspecified";
+
+export interface NumberReading {
+  number: number;
+  /** The graha this number is tied to in Indian numerology. */
+  graha: string;
+  meaning: string;
+  /** How this number was derived. Always stated. */
+  method: string;
+}
+
+/**
+ * Reported beside the chart, never inside it.
+ *
+ * Numerology casts no vote on any finding: the gate requires two independent
+ * kinds of *chart* factor to agree, and a number from a date or a spelling is
+ * not one. Both name systems are carried because they disagree, and choosing
+ * one silently would hide that.
+ */
+export interface Numerology {
+  mulank: NumberReading;
+  bhagyank: NumberReading;
+  name_chaldean: NumberReading | null;
+  name_pythagorean: NumberReading | null;
+  systems_agree: boolean | null;
+  disagreement?: string;
+  note: string;
+  name_note: string;
 }
 
 export interface BirthInput {
@@ -259,6 +328,13 @@ export interface BirthInput {
   birth_date: string;
   birth_time: string;
   city: string;
+  /**
+   * Optional. Several kootas are stated in the classical texts as a rule
+   * about the bride relative to the groom, so the two roles genuinely change
+   * a compatibility score. Where it is not given the engine falls back to
+   * entry order and says so, rather than assuming a role.
+   */
+  gender: Gender;
 }
 
 /** Fixed South Indian grid position for each sign index (0 = Aries). */

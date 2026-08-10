@@ -183,3 +183,48 @@ def test_no_real_birth_data_in_tracked_source() -> None:
             if pattern in lowered:
                 offenders.append(f"{path.relative_to(REPO)} :: {pattern}")
     assert offenders == [], "real birth data reintroduced:\n" + "\n".join(offenders)
+
+
+# ── the report must not print boxes where symbols were meant ──────────
+#
+# ReportLab's Helvetica is Type 1/WinAnsi and has no glyph for U+2609..U+264F,
+# U+211E or U+26A0. Requesting one does not raise -- it draws notdef, a filled
+# black square. Three separate markers in this report did exactly that: the
+# planet symbols, the wheel's retrograde mark, and the tag on disputed
+# evidence, which is the single most important thing on the page to label
+# legibly.
+
+
+def test_report_contains_no_notdef_boxes() -> None:
+    """Any glyph the font lacks renders as a box; none may reach the reader."""
+    from pypdf import PdfReader
+
+    raw = pdf_generator.generate_pdf(
+        name="Probe Person",
+        year=1993,
+        month=2,
+        day=13,
+        hour=9,
+        minute=30,
+        lat=51.5074,
+        lon=-0.1278,
+        tz=0.0,
+        place="London, UK",
+    )
+    import io
+
+    text = "".join((p.extract_text() or "") for p in PdfReader(io.BytesIO(raw)).pages)
+    assert "■" not in text, (
+        "the report drew a notdef box: a symbol was requested from a font that "
+        "has no glyph for it"
+    )
+
+
+def test_planet_symbols_fall_back_rather_than_break() -> None:
+    """With no symbol font, abbreviations are used -- never an empty string."""
+    for planet in pdf_generator.SYMBOLS:
+        assert pdf_generator.ABBREV[planet].isascii()
+        assert len(pdf_generator.ABBREV[planet]) == 2
+    # _sigil must always yield something renderable either way.
+    for planet in pdf_generator.SYMBOLS:
+        assert pdf_generator._sigil(planet).strip()

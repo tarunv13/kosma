@@ -72,10 +72,36 @@ COMPAT_FACTOR_KINDS: tuple[str, ...] = (
 
 @dataclass(frozen=True)
 class Person:
-    """One participant: a label and a computed chart."""
+    """One participant: a label, a computed chart, and an optional role.
+
+    `gender` exists because several kootas are genuinely directional in the
+    classical texts: they are stated as a rule about the bride's position
+    relative to the groom's, and reversing the two changes the score. Without
+    it the only available tiebreak was the order the names were typed in,
+    which is arbitrary dressed up as tradition.
+
+    It is optional, and where the rule is symmetric it changes nothing --
+    which the output says rather than implying an influence that is not there.
+    """
 
     label: str
     chart: Chart
+    gender: str = "unspecified"
+    """One of: female, male, other, unspecified."""
+
+    @property
+    def bridal_role(self) -> str | None:
+        """The classical role this person takes in a directional koota.
+
+        The texts phrase these rules as kanya (bride) and vara (groom). Only
+        the two roles the rules are written for can fill them; anyone else
+        falls back to entry order, and the reading says so.
+        """
+        if self.gender == "female":
+            return "kanya"
+        if self.gender == "male":
+            return "vara"
+        return None
 
     @property
     def moon_nak_index(self) -> int:
@@ -256,33 +282,61 @@ class Dosha:
 # ── the eight kootas ──────────────────────────────────────────────────
 
 
+def _direction(a: Person, b: Person) -> tuple[Person, Person, str]:
+    """Order a directional koota's two participants.
+
+    The classical rule names a groom and a bride, not a first and second
+    entrant. Where both roles are known, they decide; where they are not, the
+    order typed decides and the reading says which of the two happened, so a
+    score is never presented as traditional when it rested on a form field.
+    """
+    if a.bridal_role == "vara" and b.bridal_role == "kanya":
+        return a, b, "roles"
+    if a.bridal_role == "kanya" and b.bridal_role == "vara":
+        return b, a, "roles"
+    return a, b, "order"
+
+
 def _varna(a: Person, b: Person) -> Koota:
-    va = _VARNA_BY_ELEMENT[a.moon_sign_index % 4]
-    vb = _VARNA_BY_ELEMENT[b.moon_sign_index % 4]
-    forward = _VARNA_RANK[va] >= _VARNA_RANK[vb]
+    groom, bride, basis = _direction(a, b)
+    vg = _VARNA_BY_ELEMENT[groom.moon_sign_index % 4]
+    vb = _VARNA_BY_ELEMENT[bride.moon_sign_index % 4]
+    forward = _VARNA_RANK[vg] >= _VARNA_RANK[vb]
     score = 1.0 if forward else 0.0
+    if basis == "roles":
+        how = (
+            f"Taken in the classical direction: {groom.label} as vara and "
+            f"{bride.label} as kanya."
+        )
+    else:
+        how = (
+            "Neither participant gave the two roles this rule is written for, "
+            "so the order entered decides it. Reversing the two would score "
+            f"{'nothing' if forward else 'a point'}."
+        )
     return Koota(
         name="Varna",
         score=score,
         maximum=1.0,
         detail=(
-            f"{a.label} is {va} and {b.label} is {vb} by Moon-sign element. "
-            f"The rule scores {'a point' if forward else 'nothing'} in this "
-            f"order; reversing the two would score "
-            f"{'nothing' if forward else 'a point'}."
+            f"{groom.label} is {vg} and {bride.label} is {vb} by Moon-sign "
+            f"element. The rule scores {'a point' if forward else 'nothing'}. "
+            f"{how}"
         ),
         rule=(
             "Varna is taken from the Moon sign's element (water Brahmin, fire "
-            "Kshatriya, earth Vaishya, air Shudra). Classically the first-named "
-            "partner's varna should equal or exceed the other's."
+            "Kshatriya, earth Vaishya, air Shudra). Classically the groom's "
+            "varna should equal or exceed the bride's."
         ),
         source="Muhurta Chintamani ch. 1",
         variant_note=(
             "This is a classification by the sky, not by anyone's birth caste or "
             "social standing, and it carries no such meaning here. The rule is "
-            "also directional and gendered in origin; KOSMA assumes no genders, "
-            "so the order you entered decides it and both directions are shown. "
-            "Many contemporary practitioners drop this koota entirely."
+            "directional: it is stated of the groom relative to the bride, so "
+            "swapping the two can change the score. Where both roles are given "
+            "they decide; otherwise the order entered does, and the detail says "
+            "which happened. Many contemporary practitioners drop this koota "
+            "entirely."
         ),
     )
 

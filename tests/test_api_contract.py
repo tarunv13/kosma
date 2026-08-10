@@ -61,6 +61,8 @@ def test_top_level_shape(payload: dict) -> None:
         "gate",
         "glossary",
         "kind_labels",
+        "numerology",
+        "gender",
         "disclaimer",
     }
     assert set(payload) == expected
@@ -71,6 +73,8 @@ def test_planet_fields_match_the_typescript_interface(payload: dict) -> None:
         "id",
         "name",
         "glyph",
+        "symbol",
+        "placement",
         "long",
         "speed",
         "degree",

@@ -18,13 +18,13 @@ silently render nonsense.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 
 from . import ashtakavarga as av
 from . import interpretations as interp
 from . import nakshatras as nak
-from . import plainspeak
+from . import numerology, placements, plainspeak
 from . import shadbala as sb
 from . import vargas as vg
 from . import vedic_engine as ve
@@ -52,6 +52,8 @@ def _ledger_dict(e) -> dict:
     }
 
 
+# Two-letter abbreviations, used wherever the text must be legible at small
+# sizes and in any font -- the chart grid above all. These always render.
 GLYPHS: dict[str, str] = {
     "Sun": "Su",
     "Moon": "Mo",
@@ -62,6 +64,23 @@ GLYPHS: dict[str, str] = {
     "Saturn": "Sa",
     "Rahu": "Ra",
     "Ketu": "Ke",
+}
+
+# The astronomical symbols, shown beside the abbreviation where there is room.
+# They are carried *in addition to* GLYPHS rather than instead of them: the
+# node symbols in particular are missing from many system fonts, and a chart
+# cell that silently renders a tofu box for Rahu is worse than one that says
+# "Ra". The interface shows the symbol with the abbreviation as its label.
+SYMBOLS: dict[str, str] = {
+    "Sun": "☉",
+    "Moon": "☽",
+    "Mars": "♂",
+    "Mercury": "☿",
+    "Jupiter": "♃",
+    "Venus": "♀",
+    "Saturn": "♄",
+    "Rahu": "☊",
+    "Ketu": "☋",
 }
 
 # A planet within one degree of a sign boundary sits in sandhi (the junction),
@@ -81,6 +100,7 @@ def _planet_dto(chart: ve.Chart, name: str, dig: dict, strengths: dict, casts: l
         "id": name.lower(),
         "name": name,
         "glyph": GLYPHS[name],
+        "symbol": SYMBOLS[name],
         "long": round(p.longitude, 6),
         "speed": round(p.speed, 6),
         "degree": round(p.deg_in_sign, 6),
@@ -104,6 +124,16 @@ def _planet_dto(chart: ve.Chart, name: str, dig: dict, strengths: dict, casts: l
         "navamsa_sign": ve.SIGNS[d9(p.sign_idx, p.deg_in_sign)],
         "shadbala_rupas": strength.total_rupas if strength else None,
         "shadbala_band": strength.verdict if strength else None,
+        # What this graha in this bhava means, with the strengths and
+        # weaknesses modulated by the dignity it actually has here.
+        "placement": placements.placement_reading(
+            name,
+            p.house,
+            p.sign,
+            d.state,
+            retrograde=p.retrograde,
+            combust=d.combust,
+        ).as_dict(),
     }
 
 
@@ -138,6 +168,7 @@ def _house_dossier(
             {
                 "name": name,
                 "glyph": GLYPHS[name],
+                "symbol": SYMBOLS[name],
                 "degree_dms": ve.degrees_to_dms(p.deg_in_sign),
                 "nakshatra": p.nakshatra,
                 "pada": p.pada,
@@ -305,6 +336,7 @@ def build_chart_payload(
     lon: float,
     tz: float,
     place: str,
+    gender: str = "unspecified",
     now: datetime | None = None,
 ) -> dict[str, Any]:
     """Everything a frontend needs to draw the chart, and nothing more."""
@@ -422,6 +454,10 @@ def build_chart_payload(
         # explained where it appears instead of on a page nobody visits.
         "glossary": plainspeak.GLOSSARY,
         "kind_labels": plainspeak.KIND_LABEL,
+        # Reported beside the chart and deliberately outside the gate. See
+        # kosma.numerology for why it casts no vote.
+        "numerology": numerology.compute(name or "", date(year, month, day)),
+        "gender": gender,
         "disclaimer": (
             "Computed in memory and not stored. For reflection; not medical, "
             "legal, financial or psychological advice."

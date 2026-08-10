@@ -53,8 +53,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN groupadd --system --gid 1001 kosma \
  && useradd  --system --uid 1001 --gid kosma --home /home/kosma --create-home kosma
 
-# Install only what we need at runtime: curl is used by the HEALTHCHECK.
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
+# curl is used by the HEALTHCHECK. fonts-dejavu-core carries the graha
+# symbols (U+2609..U+264F): ReportLab's built-in Helvetica has no glyph for
+# any of them and silently draws a black box instead, so without this package
+# every planet symbol in the generated PDF is a filled square.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    fonts-dejavu-core \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

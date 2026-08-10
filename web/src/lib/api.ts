@@ -20,6 +20,7 @@ export async function fetchChart(input: BirthInput): Promise<ChartResponse> {
     birth_date: input.birth_date,
     birth_time: input.birth_time,
     city: input.city,
+    gender: input.gender,
   });
 
   const res = await fetch("/api/chart", {

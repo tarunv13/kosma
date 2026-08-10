@@ -2,9 +2,13 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
+import type { Gender } from "@/types/chart";
 import CosmicCard from "@/components/CosmicCard";
 import DashaTimeline from "@/components/DashaTimeline";
 import EvidencePanel from "@/components/EvidencePanel";
+import HousesPanel from "@/components/HousesPanel";
+import NumerologyPanel from "@/components/NumerologyPanel";
+import PlacementsPanel from "@/components/PlacementsPanel";
 import VedicChartEngine from "@/components/VedicChartEngine";
 import { useChartStore } from "@/store/useChartStore";
 
@@ -25,6 +29,7 @@ function BirthForm() {
     birth_date: "2000-01-01",
     birth_time: "12:00",
     city: "London, UK",
+    gender: "unspecified" as Gender,
   });
 
   return (
@@ -43,7 +48,7 @@ function BirthForm() {
       </div>
 
       <div className="panel-body">
-        <div className="grid items-end gap-5 lg:grid-cols-[1.2fr_1fr_0.8fr_1.4fr_auto]">
+        <div className="grid items-end gap-5 lg:grid-cols-[1.1fr_1fr_0.8fr_1.3fr_0.9fr_auto]">
           <label className="block">
             <span className="eyebrow mb-2 block">Name</span>
             <input
@@ -84,10 +89,37 @@ function BirthForm() {
               placeholder="City, Country"
             />
           </label>
+          {/*
+            Optional, and it says so. Several kootas are stated in the texts as
+            a rule about the bride relative to the groom, so the roles change a
+            compatibility score; the natal reading does not use it at all.
+          */}
+          <label className="block">
+            <span className="eyebrow mb-2 block">Gender</span>
+            <select
+              className="field-input"
+              value={form.gender}
+              onChange={(e) =>
+                setForm({ ...form, gender: e.target.value as Gender })
+              }
+            >
+              <option value="unspecified">Prefer not to say</option>
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
           <button type="submit" disabled={loading} className="btn-primary h-[3.25rem]">
             {loading ? "Computing…" : chart ? "Recompute" : "Compute"}
           </button>
         </div>
+
+        <p className="mt-3 text-meta leading-relaxed text-ink-2">
+          Gender is optional and changes nothing in a single chart. It is used
+          only in comparison, where several kootas are stated in the classical
+          texts as a rule about the bride relative to the groom — without it,
+          the engine falls back to the order you entered and says so.
+        </p>
 
         {error && (
           <p className="mt-4 rounded-lg border border-neg/40 bg-neg-wash px-4 py-3 text-meta font-medium text-neg">
@@ -158,6 +190,18 @@ export default function Page() {
 
             <div className="xl:col-span-12">
               <DashaTimeline />
+            </div>
+
+            <div className="xl:col-span-12">
+              <PlacementsPanel />
+            </div>
+
+            <div className="xl:col-span-12">
+              <HousesPanel />
+            </div>
+
+            <div className="xl:col-span-12">
+              <NumerologyPanel />
             </div>
 
             <section className="xl:col-span-12">

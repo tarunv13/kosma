@@ -314,6 +314,26 @@ async def version():
     return {"app": "KOSMA", "version": __version__}
 
 
+_GENDERS = frozenset({"female", "male", "other", "unspecified"})
+
+
+def _validate_gender(value: str) -> str:
+    """Constrain gender to a closed set.
+
+    Several kootas are stated in the classical texts as a rule about the
+    bride's position relative to the groom's, so the two roles genuinely
+    change a compatibility score. Anything outside the set becomes
+    "unspecified", which falls back to entry order and says so rather than
+    guessing a role for someone.
+
+    Unrecognised input is normalised rather than rejected: this is a field
+    about a person, and failing their form because they typed something the
+    enum did not anticipate would be the wrong trade.
+    """
+    v = (value or "").strip().lower()
+    return v if v in _GENDERS else "unspecified"
+
+
 def _validate_birth(birth_date: str, birth_time: str) -> tuple[int, int, int, int, int]:
     try:
         d = date.fromisoformat(birth_date)
@@ -379,6 +399,7 @@ async def generate(
     name: str = Form("", max_length=80),
     birth_date: str = Form(...),
     birth_time: str = Form(...),
+    gender: str = Form("unspecified", max_length=16),
     city: str = Form(""),
     manual_lat: str = Form(""),
     manual_lon: str = Form(""),
@@ -388,6 +409,7 @@ async def generate(
     # Validate inputs (raises HTTPException on failure)
     y, mo, d, h, mn = _validate_birth(birth_date, birth_time)
     name = (name or "").strip()[:80]
+    gender = _validate_gender(gender)
     lat, lon, tz, place_label = _resolve_place(
         city.strip() or None,
         manual_lat.strip() or None,
@@ -605,6 +627,7 @@ async def api_chart(
     name: str = Form("", max_length=80),
     birth_date: str = Form(...),
     birth_time: str = Form(...),
+    gender: str = Form("unspecified", max_length=16),
     city: str = Form(""),
     manual_lat: str = Form(""),
     manual_lon: str = Form(""),
@@ -619,6 +642,7 @@ async def api_chart(
     """
     y, mo, d, h, mn = _validate_birth(birth_date, birth_time)
     name = (name or "").strip()[:80]
+    gender = _validate_gender(gender)
     lat, lon, tz, place_label = _resolve_place(
         city.strip() or None,
         manual_lat.strip() or None,
@@ -639,6 +663,7 @@ async def api_chart(
             lon=lon,
             tz=tz,
             place=place_label,
+            gender=gender,
         )
     except Exception:
         exc_class = sys.exc_info()[0]
