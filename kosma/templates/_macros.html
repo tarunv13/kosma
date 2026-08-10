@@ -83,6 +83,18 @@
       </div>
     </div>
 
+    {# Varna is stated of the groom relative to the bride, so the roles decide
+       its direction. Absent, the koota falls back to entry order and says so. #}
+    <div class="field">
+      <label for="{{ tag }}_gender">Gender <span class="opt">(optional)</span></label>
+      <select id="{{ tag }}_gender" name="{{ tag }}_gender">
+        <option value="unspecified">Prefer not to say</option>
+        <option value="female">Female</option>
+        <option value="male">Male</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+
     <div class="field">
       <div class="segmented" role="tablist" aria-label="How to give the birthplace">
         <button type="button" role="tab" aria-selected="true" data-tab="city">City</button>

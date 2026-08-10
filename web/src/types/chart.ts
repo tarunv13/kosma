@@ -472,4 +472,6 @@ export interface PersonInput {
   birth_date: string;
   birth_time: string;
   city: string;
+  /** Optional. Decides the direction of the kootas that are stated directionally. */
+  gender: Gender;
 }

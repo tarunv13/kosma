@@ -19,12 +19,30 @@ import type {
  * so leading with "28/36" would foreground the weakest part of the method.
  */
 
-const BLANK: PersonInput = { name: "", birth_date: "", birth_time: "", city: "" };
+const BLANK: PersonInput = {
+  name: "",
+  birth_date: "",
+  birth_time: "",
+  city: "",
+  gender: "unspecified",
+};
 
 // Synthetic epochs, not people — the same ones the test suite pins against.
 const SEED: PersonInput[] = [
-  { name: "Epoch A", birth_date: "2000-01-01", birth_time: "12:00", city: "London, UK" },
-  { name: "Epoch B", birth_date: "2010-06-21", birth_time: "06:00", city: "Indore, India" },
+  {
+    name: "Epoch A",
+    birth_date: "2000-01-01",
+    birth_time: "12:00",
+    city: "London, UK",
+    gender: "unspecified",
+  },
+  {
+    name: "Epoch B",
+    birth_date: "2010-06-21",
+    birth_time: "06:00",
+    city: "Indore, India",
+    gender: "unspecified",
+  },
 ];
 
 function verdictChip(verdict: string) {
@@ -110,6 +128,25 @@ function PersonFields({
             onChange={(e) => set("city", e.target.value)}
             placeholder="City, Country"
           />
+        </label>
+        {/*
+          This one genuinely changes a score. Varna is stated of the groom
+          relative to the bride, so with both roles known the rule runs in its
+          classical direction; without them it falls back to the order the
+          people were entered in, and the koota says which happened.
+        */}
+        <label className="block">
+          <span className="eyebrow mb-2 block">Gender</span>
+          <select
+            className="field-input"
+            value={value.gender}
+            onChange={(e) => set("gender", e.target.value)}
+          >
+            <option value="unspecified">Prefer not to say</option>
+            <option value="female">Female</option>
+            <option value="male">Male</option>
+            <option value="other">Other</option>
+          </select>
         </label>
       </div>
     </div>

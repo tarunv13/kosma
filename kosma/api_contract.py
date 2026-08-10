@@ -615,7 +615,13 @@ def build_compatibility_payload(
             lon_geo=person["lon"],
             tz=person["tz"],
         )
-        built.append(cp.Person(label=person["label"], chart=chart))
+        built.append(
+            cp.Person(
+                label=person["label"],
+                chart=chart,
+                gender=person.get("gender", "unspecified"),
+            )
+        )
         moon = chart.planets["Moon"]
         profiles.append(
             {

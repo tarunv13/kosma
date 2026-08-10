@@ -728,6 +728,10 @@ async def api_compatibility(request: Request):
                 "lon": lon,
                 "tz": tz,
                 "place": place,
+                # Varna is stated of the groom relative to the bride, so the
+                # roles decide it where they are given. Absent, the koota
+                # falls back to entry order and says which happened.
+                "gender": _validate_gender(str(form.get(f"{tag}_gender") or "")),
             }
         )
 

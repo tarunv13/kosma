@@ -37,6 +37,22 @@
             <input type="time" id="birth_time" name="birth_time" required step="60" />
           </div>
         </div>
+        {# Carried so a blueprint and a comparison ask for the same things.
+           It changes nothing in a single chart, which the hint says. #}
+        <div class="field">
+          <label for="gender">Gender <span class="opt">(optional)</span></label>
+          <select id="gender" name="gender">
+            <option value="unspecified">Prefer not to say</option>
+            <option value="female">Female</option>
+            <option value="male">Male</option>
+            <option value="other">Other</option>
+          </select>
+          <p class="hint">
+            Used only in comparison, where several kootas are stated in the
+            classical texts as a rule about the bride relative to the groom.
+            It does not change a single chart.
+          </p>
+        </div>
         <p class="hint">
           The ascendant moves about one degree every four minutes. Ten minutes of
           drift can change the rising nakshatra pada and several KP sub-divisions.

@@ -79,6 +79,7 @@ export async function fetchCompatibility(
     body.set(`${tag}_date`, p.birth_date);
     body.set(`${tag}_time`, p.birth_time);
     body.set(`${tag}_city`, p.city);
+    body.set(`${tag}_gender`, p.gender);
   });
 
   const res = await fetch("/api/compatibility", {

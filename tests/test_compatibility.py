@@ -287,3 +287,60 @@ def test_group_compares_every_pair(
 def test_group_needs_at_least_two(pa: cp.Person, pinned_now_jd: float) -> None:
     with pytest.raises(ValueError):
         cp.compare_group([pa], pinned_now_jd)
+
+
+# ── gender decides the direction of the directional kootas ────────────
+#
+# Varna is stated of the groom relative to the bride. Before roles existed the
+# tie was broken by the order the two people were typed in, which is arbitrary
+# presented as tradition.
+
+
+def test_roles_decide_varna_regardless_of_entry_order(pa: cp.Person, pb: cp.Person) -> None:
+    """With both roles known, swapping the arguments must not change the score."""
+    groom = cp.Person(label=pa.label, chart=pa.chart, gender="male")
+    bride = cp.Person(label=pb.label, chart=pb.chart, gender="female")
+
+    forward = next(k for k in cp.guna_milan(groom, bride).kootas if k.name == "Varna")
+    reverse = next(k for k in cp.guna_milan(bride, groom).kootas if k.name == "Varna")
+    assert forward.score == reverse.score, (
+        "the classical direction must come from the roles, not from argument order"
+    )
+
+
+def test_without_roles_entry_order_still_decides_and_says_so(
+    pa: cp.Person, pb: cp.Person
+) -> None:
+    k = next(k for k in cp.guna_milan(pa, pb).kootas if k.name == "Varna")
+    assert "order entered" in k.detail
+
+
+def test_with_roles_the_detail_names_them(pa: cp.Person, pb: cp.Person) -> None:
+    groom = cp.Person(label=pa.label, chart=pa.chart, gender="male")
+    bride = cp.Person(label=pb.label, chart=pb.chart, gender="female")
+    k = next(k for k in cp.guna_milan(groom, bride).kootas if k.name == "Varna")
+    assert "vara" in k.detail and "kanya" in k.detail
+
+
+def test_other_and_unspecified_fall_back_rather_than_guess(
+    pa: cp.Person, pb: cp.Person
+) -> None:
+    """A role the rule was not written for must not be assigned one."""
+    a = cp.Person(label=pa.label, chart=pa.chart, gender="other")
+    b = cp.Person(label=pb.label, chart=pb.chart, gender="female")
+    k = next(k for k in cp.guna_milan(a, b).kootas if k.name == "Varna")
+    assert "order entered" in k.detail
+    assert a.bridal_role is None
+
+
+def test_symmetric_kootas_are_unaffected_by_roles(pa: cp.Person, pb: cp.Person) -> None:
+    """Tara and Bhakoot are computed both ways; roles must not touch them."""
+    plain = cp.guna_milan(pa, pb)
+    gendered = cp.guna_milan(
+        cp.Person(label=pa.label, chart=pa.chart, gender="male"),
+        cp.Person(label=pb.label, chart=pb.chart, gender="female"),
+    )
+    for name in ("Tara", "Bhakoot", "Yoni", "Gana"):
+        p = next(k for k in plain.kootas if k.name == name)
+        g = next(k for k in gendered.kootas if k.name == name)
+        assert p.score == g.score, f"{name} is symmetric and must not change with roles"
