@@ -117,8 +117,8 @@ function BirthForm() {
         <p className="mt-3 text-meta leading-relaxed text-ink-2">
           Gender is optional and changes nothing in a single chart. It is used
           only in comparison, where several kootas are stated in the classical
-          texts as a rule about the bride relative to the groom — without it,
-          the engine falls back to the order you entered and says so.
+          texts as a rule about the bride relative to the groom. Without it, the
+          engine falls back to the order you entered and says so.
         </p>
 
         {error && (

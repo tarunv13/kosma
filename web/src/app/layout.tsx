@@ -29,7 +29,7 @@ const sans = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "KOSMA — Living Cosmos",
+  title: "KOSMA, a living chart",
   description:
     "A Vedic chart computed to the arc-second, showing only what it can support.",
   robots: { index: false, follow: false },

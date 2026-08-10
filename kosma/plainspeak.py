@@ -50,7 +50,7 @@ GLOSSARY: dict[str, str] = {
         "The combined ashtakavarga total for a house, out of 337 spread "
         "across all twelve. Above 30 is well supplied, 25 or under is thin."
     ),
-    "bhava": "A house — one of the twelve divisions of life the chart is read through.",
+    "bhava": "A house: one of the twelve divisions of life the chart is read through.",
     "dasha": (
         "A period of life assigned to a planet. The Vimshottari cycle runs "
         "120 years and hands the chart to each planet in turn."
@@ -58,32 +58,33 @@ GLOSSARY: dict[str, str] = {
     "mahadasha": "The major period, from six to twenty years depending on the planet.",
     "antardasha": "A sub-period inside a mahadasha, run by a second planet.",
     "dignity": (
-        "How comfortable a planet is where it sits — at home in its own sign, "
-        "exalted at its best, debilitated at its worst, or somewhere between."
+        "How comfortable a planet is where it sits. Exalted is its best, "
+        "debilitated its worst, its own sign steady, and most placements fall "
+        "somewhere between."
     ),
     "exalted": "A planet at its strongest possible placement.",
-    "debilitated": "A planet at its weakest placement — the sign opposite its exaltation.",
-    "swakshetra": "A planet sitting in a sign it rules — at home, and steady.",
+    "debilitated": "A planet at its weakest placement, the sign opposite its exaltation.",
+    "swakshetra": "A planet sitting in a sign it rules, so at home and steady.",
     "moolatrikona": "A planet's best working position, just short of exaltation.",
     "drishti": (
-        "Aspect — the way a planet influences a house it is not sitting in. "
+        "Aspect: the way a planet influences a house it is not sitting in. "
         "Every planet looks at the house opposite; some have additional reach."
     ),
-    "graha": "A planet, in the Jyotish sense — the nine include the lunar nodes.",
+    "graha": "A planet, in the Jyotish sense. The nine include the lunar nodes.",
     "rasi": "A sign of the zodiac, and the name of the main birth chart (D1).",
-    "lagna": "The ascendant — the sign rising at the eastern horizon at birth.",
+    "lagna": "The ascendant: the sign rising at the eastern horizon at birth.",
     "nakshatra": (
         "One of 27 lunar mansions. Finer than a sign, and each has a ruling "
         "planet that carries influence to wherever that planet sits."
     ),
-    "kendra": "The angular houses (1, 4, 7, 10) — the load-bearing parts of a chart.",
-    "trikona": "The trines (1, 5, 9) — traditionally the most fortunate houses.",
-    "dusthana": "Houses 6, 8 and 12 — the difficult ones, tied to loss and crisis.",
+    "kendra": "The angular houses (1, 4, 7, 10), the load-bearing parts of a chart.",
+    "trikona": "The trines (1, 5, 9), traditionally the most fortunate houses.",
+    "dusthana": "Houses 6, 8 and 12: the difficult ones, tied to loss and crisis.",
     "yoga": "A named combination of placements the classical texts single out.",
     "vimshottari": "The 120-year dasha cycle used here, and the most widely used one.",
-    "gochara": "Transits — where the planets are now, as against where they were at birth.",
+    "gochara": "Transits: where the planets are now, as against where they were at birth.",
     "varga": "A divisional chart, derived from the birth chart to examine one area closely.",
-    "vargottama": "A planet in the same sign in a divisional chart as in the birth chart — reinforced.",
+    "vargottama": "A planet in the same sign in a divisional chart as in the birth chart, and so reinforced.",
     "retrograde": "A planet appearing to move backwards from Earth. Its themes turn inward.",
     "combust": "A planet too close to the Sun to be seen, and traditionally weakened by it.",
     "karaka": "The natural significator of a matter, regardless of which house it occupies.",
@@ -169,13 +170,22 @@ class PlainReading:
     governs: str
     """The fuller description of what the house covers."""
     headline: str
-    """One sentence: the shape of this house's answer."""
+    """What this area of life is. The reader is oriented before being read."""
     body: tuple[str, ...] = ()
-    """Two or three sentences narrating the evidence."""
+    """The reading itself, as connected prose rather than two labelled lists."""
     limit: str = ""
-    """What this reading does not claim."""
+    """How far to trust it, and what was left out."""
     karaka_note: str = ""
-    """The natural significator, and what that adds."""
+    """The natural significator, and how to use it to test the reading."""
+    sources: tuple[str, ...] = ()
+    """The texts this rests on.
+
+    Held separately and rendered after the reading. It used to sit inside the
+    passage, so a reader following a sentence about their marriage had to step
+    over "Brihat Parashara Hora Shastra ch. 41" to reach the end of the
+    thought. Nothing is hidden by moving it; the sources are shown in full,
+    after the thing they support.
+    """
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -186,6 +196,7 @@ class PlainReading:
             "body": list(self.body),
             "limit": self.limit,
             "karaka_note": self.karaka_note,
+            "sources": list(self.sources),
         }
 
 
@@ -235,21 +246,20 @@ def house_reading(
     governs = HOUSE_GOVERNS.get(house, topic)
     place = f"the {_ordinal(house)} house"
 
-    # ── headline ──────────────────────────────────────────────────────
-    if "contested" in verdict:
-        headline = (
-            f"{place.capitalize()} pulls in two directions at once: parts of "
-            f"it are genuinely well supported and other parts are genuinely "
-            f"under strain, and neither cancels the other out."
-        )
-    elif "under strain" in verdict or (opposing and not supporting):
-        headline = f"{place.capitalize()} is the harder ground in this chart."
-    elif supporting and not opposing:
-        headline = f"{place.capitalize()} is well supported, with nothing arguing against it."
-    else:
-        headline = f"{place.capitalize()} leans favourable on balance."
+    # ── 1. what this area of life is ──────────────────────────────────
+    #
+    # Ground the reader before saying anything about them. The first
+    # sentence of the classical description does this without Sanskrit.
+    opening = governs.split(".")[0].strip()
+    headline = f"{opening}. That is what {place} covers."
 
-    # ── body ──────────────────────────────────────────────────────────
+    # ── 2. what the chart says, as one passage ────────────────────────
+    #
+    # Both directions inside the same prose. The old version printed an "In
+    # its favour" list against an "Against it" list, which is a filing
+    # system: correct, and leaving the reader to work out the relation
+    # between the two halves themselves. Joining them with the word that
+    # describes the relation is the whole difference.
     body: list[str] = []
 
     def _phrases(items: Sequence[dict[str, Any]], positive: bool) -> list[str]:
@@ -263,24 +273,63 @@ def house_reading(
                 seen.append(phrase)
         return seen
 
-    sup_phrases = _phrases(supporting, True)
-    opp_phrases = _phrases(opposing, False)
+    sup = _phrases(supporting, True)
+    opp = _phrases(opposing, False)
 
-    if sup_phrases:
+    if sup and opp:
         body.append(
-            f"In its favour: {_join(sup_phrases)}."
-            if len(sup_phrases) > 1
-            else f"In its favour, {sup_phrases[0]}."
+            f"Here, {_join(sup)}. At the same time {_join(opp)}, which is why "
+            f"this part of the chart reads as pulling two ways rather than "
+            f"settling into one."
         )
-    if opp_phrases:
         body.append(
-            f"Against it: {_join(opp_phrases)}."
-            if len(opp_phrases) > 1
-            else f"Against it, {opp_phrases[0]}."
+            "Both readings are supported. The strain does not cancel the "
+            "support and the support does not remove the strain, so expect "
+            "this area to be genuinely uneven rather than simply good or "
+            "simply hard."
+        )
+    elif sup:
+        body.append(
+            f"Here, {_join(sup)}, and nothing in the chart argues the other "
+            f"way. That makes this one of the steadier parts of the reading."
+        )
+    elif opp:
+        body.append(
+            f"Here, {_join(opp)}, with nothing arguing the other way. This is "
+            f"the harder ground in this chart, which is worth knowing plainly "
+            f"rather than discovering slowly."
         )
 
-    # Which texts this rests on — named, so the reader can go and look.
-    texts = []
+    # ── 3. how it tends to show up, and what to do with it ────────────
+    #
+    # The lived version, and something actionable. Both are written as
+    # tendencies of the placement, never as statements about the reader.
+    karaka = BHAVA_KARAKA.get(house)
+    karaka_note = ""
+    if karaka:
+        karaka_note = (
+            f"Alongside the house itself, the tradition reads {karaka} as the "
+            f"natural significator (karaka) of these matters in any chart, "
+            f"wherever it happens to sit. Where the house and {karaka} agree, "
+            f"a reading is held to be firmer than either would be alone, so "
+            f"that is the first place to look if you want to test what is "
+            f"written above."
+        )
+
+    # ── 4. how far to trust it ────────────────────────────────────────
+    limit = _CONFIDENCE_PLAIN.get(confidence, "Read this as a direction rather than a conclusion.")
+    disputed_count = len(evidence) - len(counted)
+    if disputed_count:
+        limit += (
+            f" {disputed_count} further factor"
+            f"{'s' if disputed_count > 1 else ''} appeared but "
+            f"{'are' if disputed_count > 1 else 'is'} disputed between schools, "
+            f"so {'they were' if disputed_count > 1 else 'it was'} left out of "
+            f"the count."
+        )
+
+    # ── 5. where it comes from, kept out of the reader's way ──────────
+    texts: list[str] = []
     for e in counted:
         src = str(e.get("source", ""))
         for name in (
@@ -293,33 +342,6 @@ def house_reading(
         ):
             if name in src and name not in texts:
                 texts.append(name)
-    if texts:
-        body.append(
-            f"These rules come from {_join(texts)} — the citation for each one "
-            f"is in the detail below."
-        )
-
-    # ── the limit ─────────────────────────────────────────────────────
-    limit = _CONFIDENCE_PLAIN.get(confidence, "Read this as a direction rather than a conclusion.")
-    disputed_count = len(evidence) - len(counted)
-    if disputed_count:
-        limit += (
-            f" {disputed_count} further factor"
-            f"{'s' if disputed_count > 1 else ''} appeared but "
-            f"{'are' if disputed_count > 1 else 'is'} disputed between schools, "
-            f"so {'they were' if disputed_count > 1 else 'it was'} not counted."
-        )
-
-    # ── the natural significator ──────────────────────────────────────
-    karaka = BHAVA_KARAKA.get(house)
-    karaka_note = ""
-    if karaka:
-        karaka_note = (
-            f"{karaka} is the natural significator (karaka) of these matters "
-            f"in any chart, whatever house it occupies here. Classical practice "
-            f"is to read the house and its significator together, and to trust "
-            f"the reading further when they agree."
-        )
 
     return PlainReading(
         house=house,
@@ -329,6 +351,7 @@ def house_reading(
         body=tuple(body),
         limit=limit,
         karaka_note=karaka_note,
+        sources=tuple(texts),
     )
 
 

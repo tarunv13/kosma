@@ -129,7 +129,7 @@ export default function HouseDossier({ house }: { house: House }) {
           <span className={`font-mono font-semibold ${savTone}`}>
             {house.sarvashtakavarga} bindus
           </span>{" "}
-          — {house.sarvashtakavarga_band}. Out of 337 across the chart; 30 or more
+          ({house.sarvashtakavarga_band}). Out of 337 across the chart; 30 or more
           counts as strong, 25 or fewer as thin.
         </Row>
 

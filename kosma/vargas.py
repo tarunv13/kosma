@@ -193,8 +193,8 @@ VARGAS: tuple[VargaSpec, ...] = (
         note=(
             "Counted forward from the sign for both odd and even signs, per "
             "BPHS ch. 6. Some later authors reverse the count in even signs, "
-            "which shifts every placement — verify against your own tradition "
-            "before leaning on D60."
+            "which shifts every placement, so verify against your own "
+            "tradition before leaning on D60."
         ),
     ),
 )

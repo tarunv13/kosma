@@ -317,7 +317,7 @@ NOTABLE: dict[tuple[str, int], str] = {
     (
         "Sun",
         10,
-    ): "Parashara treats the Sun in the 10th as directly strengthened — it gains dig bala (directional strength) here, and the house of action is its natural ground.",
+    ): "Parashara treats the Sun in the 10th as directly strengthened. It gains dig bala (directional strength) here, and the house of action is its natural ground.",
     (
         "Sun",
         1,
@@ -325,7 +325,7 @@ NOTABLE: dict[tuple[str, int], str] = {
     (
         "Moon",
         4,
-    ): "The Moon in the 4th is in its own natural house — the karaka of the mother and of inner ground, sitting in the bhava of both.",
+    ): "The Moon in the 4th is in its own natural house: the karaka of the mother and of inner ground, sitting in the bhava of both.",
     (
         "Moon",
         10,
@@ -345,7 +345,7 @@ NOTABLE: dict[tuple[str, int], str] = {
     (
         "Mars",
         3,
-    ): "Mars in the 3rd is at its most useful — courage and initiative in the house of exactly those, and an upachaya besides.",
+    ): "Mars in the 3rd is at its most useful, giving courage and initiative in the house of exactly those, and an upachaya besides.",
     (
         "Mercury",
         1,
@@ -361,7 +361,7 @@ NOTABLE: dict[tuple[str, int], str] = {
     (
         "Jupiter",
         5,
-    ): "Jupiter in the 5th sits in the house of children and merit as their natural significator — the texts read this warmly.",
+    ): "Jupiter in the 5th sits in the house of children and merit as their natural significator, which the texts read warmly.",
     (
         "Jupiter",
         6,
@@ -377,7 +377,7 @@ NOTABLE: dict[tuple[str, int], str] = {
     (
         "Venus",
         12,
-    ): "Venus in the 12th is read as strong for the pleasures of the 12th — seclusion, foreign places, the bed — and weak for anything requiring restraint.",
+    ): "Venus in the 12th is read as strong for the pleasures of the 12th, meaning seclusion and foreign places, and weak for anything requiring restraint.",
     (
         "Saturn",
         7,
@@ -393,7 +393,7 @@ NOTABLE: dict[tuple[str, int], str] = {
     (
         "Saturn",
         6,
-    ): "Saturn in the 6th is a malefic in a dusthana, which the texts read as genuinely good — it is well suited to grinding down debt, illness and opposition.",
+    ): "Saturn in the 6th is a malefic in a dusthana, which the texts read as genuinely good: it is well suited to grinding down debt, illness and opposition.",
     (
         "Saturn",
         10,
@@ -405,7 +405,7 @@ NOTABLE: dict[tuple[str, int], str] = {
     (
         "Rahu",
         6,
-    ): "Rahu in the 6th is classically strong — it fights, and here there is something to fight.",
+    ): "Rahu in the 6th is classically strong because it fights, and here there is something to fight.",
     (
         "Rahu",
         11,
@@ -417,7 +417,7 @@ NOTABLE: dict[tuple[str, int], str] = {
     (
         "Ketu",
         9,
-    ): "Ketu in the 9th complicates inherited belief — the tradition given is rarely the one kept.",
+    ): "Ketu in the 9th complicates inherited belief, because the tradition given is rarely the one kept.",
 }
 
 
@@ -511,7 +511,7 @@ def _condition_sentence(
         )
     else:
         parts.append(
-            f"In this chart {phrase} — neither reinforced nor undermined by "
+            f"In this chart {phrase}, neither reinforced nor undermined by "
             f"the sign, so the house matters more than the dignity does here."
         )
 
@@ -523,7 +523,7 @@ def _condition_sentence(
         )
     if combust:
         parts.append(
-            "It is combust — too close to the Sun to be seen — which the texts "
+            "It is combust, meaning too close to the Sun to be seen, which the texts "
             "treat as weakening its independent expression, whatever its "
             "dignity otherwise."
         )

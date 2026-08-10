@@ -132,7 +132,7 @@ function PlanetGlyph({
       </text>
       {planet.sandhi && (
         <circle cx={-12} cy={-5} r={3} fill={CHART.nebulaBright}>
-          <title>Sandhi — within one degree of a sign boundary</title>
+          <title>Sandhi: within one degree of a sign boundary</title>
         </circle>
       )}
     </motion.g>
@@ -168,7 +168,7 @@ function VargaGlyph({
       {position.vargottama && (
         <>
           <circle cx={36} cy={-5} r={3.5} fill={CHART.goldBright}>
-            <title>Vargottama — same sign as in D1</title>
+            <title>Vargottama: same sign as in D1</title>
           </circle>
           <text
             x={46}
@@ -271,7 +271,7 @@ export default function VedicChartEngine() {
               key={v.code}
               type="button"
               onClick={() => setVarga(v.code)}
-              title={`${v.name} — ${v.read_for}`}
+              title={`${v.name}: ${v.read_for}`}
               aria-pressed={v.code === activeVarga}
               className={`rounded-lg border px-2.5 py-1 font-mono text-micro font-bold transition-all ${
                 v.code === activeVarga
@@ -297,7 +297,7 @@ export default function VedicChartEngine() {
               {vargottamaCount > 0 && (
                 <>
                   {" "}
-                  <span className="text-gold">{vargottamaCount} vargottama</span> —
+                  <span className="text-gold">{vargottamaCount} vargottama</span>,
                   holding the same sign as in D1.
                 </>
               )}
@@ -307,7 +307,7 @@ export default function VedicChartEngine() {
             )}
             <p className="mt-2 text-meta text-ink-2">
               Divisions carry placement, not degrees, and drishti is computed in
-              the rasi — so aspect tracing is offered in D1 only.
+              the rasi, so aspect tracing is offered in D1 only.
             </p>
           </div>
         )}

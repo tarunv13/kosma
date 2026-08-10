@@ -168,7 +168,7 @@ def compute(name: str, birth: date) -> dict[str, Any]:
         out["systems_agree"] = chaldean == pythagorean
         if not out["systems_agree"]:
             out["disagreement"] = (
-                f"The two systems disagree here — Chaldean gives {chaldean}, "
+                f"The two systems disagree here. Chaldean gives {chaldean}, "
                 f"Pythagorean gives {pythagorean}. Neither is reported as the "
                 f"answer, because there is no basis in either tradition for "
                 f"preferring one and the disagreement is the honest result."

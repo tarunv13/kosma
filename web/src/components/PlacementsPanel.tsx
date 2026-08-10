@@ -104,7 +104,7 @@ function PlacementRow({ planet }: { planet: Planet }) {
             </span>
             <dl className="grid gap-x-6 gap-y-1.5 sm:grid-cols-2">
               {[
-                ["Mantra", `${p.remedy.mantra} — ${p.remedy.transliteration}`],
+                ["Mantra", `${p.remedy.mantra}, ${p.remedy.transliteration}`],
                 ["Day", p.remedy.vara],
                 ["Daana", p.remedy.daana],
                 ["Ratna", p.remedy.gem],

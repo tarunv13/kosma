@@ -63,6 +63,8 @@ def test_top_level_shape(payload: dict) -> None:
         "kind_labels",
         "numerology",
         "gender",
+        "themes",
+        "palette_note",
         "disclaimer",
     }
     assert set(payload) == expected
@@ -242,6 +244,7 @@ def test_vargottama_means_same_sign_as_d1(payload: dict) -> None:
 def test_every_house_carries_a_full_dossier(payload: dict) -> None:
     required = {
         "house",
+        "theme",
         "sign",
         "sign_index",
         "topic",

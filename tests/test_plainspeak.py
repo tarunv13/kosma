@@ -73,20 +73,64 @@ def test_every_kind_reads_differently_for_and_against(kind: str) -> None:
     assert positive and negative
 
 
-def test_supporting_evidence_lands_in_favour() -> None:
+def test_supporting_evidence_reads_as_support() -> None:
     reading = plainspeak.house_reading(
         1, "self", "supported", "indicative", [_ev("ashtakavarga", 1)]
     )
-    assert any(b.startswith("In its favour") for b in reading.body)
-    assert not any(b.startswith("Against it") for b in reading.body)
+    joined = " ".join(reading.body)
+    assert "generously supplied" in joined
+    assert "nothing in the chart argues the other way" in joined
 
 
-def test_opposing_evidence_lands_against() -> None:
+def test_opposing_evidence_reads_as_strain() -> None:
     reading = plainspeak.house_reading(
         1, "self", "under strain", "indicative", [_ev("ashtakavarga", -1)]
     )
-    assert any(b.startswith("Against it") for b in reading.body)
-    assert not any(b.startswith("In its favour") for b in reading.body)
+    joined = " ".join(reading.body)
+    assert "thinly supplied" in joined
+    assert "harder ground" in joined
+
+
+def test_both_directions_are_woven_into_one_passage() -> None:
+    """The reading must connect the two halves, not print two labelled lists.
+
+    Printing "In its favour: ..." above "Against it: ..." is a filing system:
+    accurate, and leaving the reader to work out the relation between the two
+    themselves.
+    """
+    reading = plainspeak.house_reading(
+        1, "self", "contested", "corroborated", [_ev("aspect", 1), _ev("dignity", -1)]
+    )
+    joined = " ".join(reading.body)
+    assert "At the same time" in joined, "the two directions were not joined"
+    for label in ("In its favour:", "Against it:"):
+        assert label not in joined, f"reverted to a labelled list: {label!r}"
+
+
+def test_the_reading_opens_by_saying_what_the_area_is() -> None:
+    """Orientation before verdict: a reader is grounded before being read."""
+    reading = plainspeak.house_reading(
+        7, "partnership", "supported", "indicative", [_ev("aspect", 1)]
+    )
+    assert "7th house covers" in reading.headline
+
+
+# Written as code points so the linter does not read the test for dashes as
+# itself containing a stray dash.
+EM_DASH = chr(0x2014)
+EN_DASH = chr(0x2013)
+
+
+def test_no_em_dashes_reach_the_reader() -> None:
+    """The house style bans them; generated prose has to obey it too."""
+    reading = plainspeak.house_reading(
+        2, "wealth", "contested", "well corroborated", [_ev("aspect", 1), _ev("dignity", -1)]
+    )
+    surfaces = [reading.headline, reading.limit, reading.karaka_note, *reading.body]
+    surfaces += list(plainspeak.GLOSSARY.values())
+    for text in surfaces:
+        assert EM_DASH not in text, f"em dash in: {text[:60]}"
+        assert EN_DASH not in text, f"en dash in: {text[:60]}"
 
 
 def test_generously_and_thinly_supplied_are_not_swapped() -> None:
@@ -130,8 +174,12 @@ def test_glossary_entries_are_sentences_not_stubs() -> None:
         assert meaning[0].isupper(), f"{term} definition does not start as a sentence"
 
 
-def test_cited_texts_are_named_in_the_prose() -> None:
-    """A reader is told which book a rule came from, not just that one exists."""
+def test_cited_texts_are_carried_but_kept_out_of_the_passage() -> None:
+    """Sources reach the reader after the reading, never inside it.
+
+    Mid-passage, a chapter reference competes with the sentence it supports.
+    It is still shown in full; it is shown afterwards.
+    """
     reading = plainspeak.house_reading(
         1,
         "self",
@@ -139,6 +187,65 @@ def test_cited_texts_are_named_in_the_prose() -> None:
         "indicative",
         [_ev("aspect", 1, source="Phaladeepika ch. 6"), _ev("dignity", 1, source="Saravali ch. 3")],
     )
+    assert set(reading.sources) == {"Phaladeepika", "Saravali"}
     joined = " ".join(reading.body)
-    assert "Phaladeepika" in joined
-    assert "Saravali" in joined
+    for text in ("Phaladeepika", "Saravali", "Brihat Parashara"):
+        assert text not in joined, f"{text} leaked into the reading passage"
+
+
+def test_disputed_sources_are_not_credited() -> None:
+    """A text cited only by excluded evidence must not appear as a source."""
+    reading = plainspeak.house_reading(
+        1,
+        "self",
+        "supported",
+        "indicative",
+        [
+            _ev("aspect", 1, source="Phaladeepika ch. 6"),
+            _ev("yoga", 1, disputed=True, source="Saravali ch. 3"),
+        ],
+    )
+    assert "Saravali" not in reading.sources
+
+
+# ── the whole payload, not just the plain layer ───────────────────────
+
+
+def test_no_em_dash_anywhere_in_the_rendered_payload() -> None:
+    """Every string the client can render has to obey the house style.
+
+    Checking the payload rather than the source is the point: docstrings and
+    comments keep their punctuation, and only the text a reader actually sees
+    is constrained. This catches a stray dash in any module that contributes
+    prose, including ones added later.
+    """
+    from kosma import api_contract as ac
+
+    payload = ac.build_chart_payload(
+        name="Probe",
+        year=1993,
+        month=2,
+        day=13,
+        hour=9,
+        minute=30,
+        lat=51.5074,
+        lon=-0.1278,
+        tz=0.0,
+        place="London, UK",
+    )
+
+    offenders: list[str] = []
+
+    def walk(node: object, path: str = "") -> None:
+        if isinstance(node, str):
+            if EM_DASH in node or EN_DASH in node:
+                offenders.append(f"{path}: {node[:80]}")
+        elif isinstance(node, dict):
+            for key, value in node.items():
+                walk(value, f"{path}.{key}")
+        elif isinstance(node, list):
+            for index, value in enumerate(node):
+                walk(value, f"{path}[{index}]")
+
+    walk(payload)
+    assert offenders == [], "dashes reached the reader:\n" + "\n".join(offenders)

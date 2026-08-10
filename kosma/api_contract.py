@@ -24,7 +24,7 @@ from typing import Any
 from . import ashtakavarga as av
 from . import interpretations as interp
 from . import nakshatras as nak
-from . import numerology, placements, plainspeak
+from . import numerology, placements, plainspeak, themes
 from . import shadbala as sb
 from . import vargas as vg
 from . import vedic_engine as ve
@@ -35,7 +35,7 @@ from .grounding import AYANAMSA, HOUSE_SYSTEM
 from .vargas import d9
 from .yogas import detect_yogas
 
-CONTRACT_VERSION = "1.2"
+CONTRACT_VERSION = "1.3"
 
 
 def _ledger_dict(e) -> dict:
@@ -211,6 +211,7 @@ def _house_dossier(
 
     return {
         "house": house,
+        "theme": themes.theme_for(house).as_dict(),
         "sign": house_sign(chart, house),
         "sign_index": (chart.ascendant_sign_idx + house - 1) % 12,
         "topic": HOUSE_TOPICS[house],
@@ -454,6 +455,10 @@ def build_chart_payload(
         # explained where it appears instead of on a page nobody visits.
         "glossary": plainspeak.GLOSSARY,
         "kind_labels": plainspeak.KIND_LABEL,
+        # One colour per house, from the house's element and karaka rather
+        # than from how its reading came out. See kosma.themes.
+        "themes": themes.all_themes(),
+        "palette_note": themes.PALETTE_NOTE,
         # Reported beside the chart and deliberately outside the gate. See
         # kosma.numerology for why it casts no vote.
         "numerology": numerology.compute(name or "", date(year, month, day)),

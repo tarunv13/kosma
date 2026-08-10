@@ -500,8 +500,8 @@ export default function ComparePage() {
             </div>
 
             <p className="mt-4 text-meta leading-relaxed text-ink-2">
-              Friendship mode drops Yoni and Nadi — they assess sexual and genetic
-              compatibility and say nothing about a friendship — and Varna, whose
+              Friendship mode drops Yoni and Nadi, which assess sexual and genetic
+              compatibility and say nothing about a friendship, and Varna, whose
               rule is directional and marriage-shaped.
             </p>
 

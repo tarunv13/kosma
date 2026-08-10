@@ -139,6 +139,7 @@ export interface Placement {
 /** The full structural dossier for one bhava. */
 export interface House {
   house: number;
+  theme: HouseTheme;
   sign: string;
   sign_index: number;
   topic: string;
@@ -229,8 +230,13 @@ export interface PlainReading {
   body: string[];
   /** What this reading does not claim. */
   limit: string;
-  /** The natural significator, and what reading it alongside adds. */
+  /** The natural significator, and how to use it to test the reading. */
   karaka_note: string;
+  /**
+   * The texts this rests on, held apart from the reading and rendered after
+   * it. Inside the passage it competed with the sentence it supported.
+   */
+  sources: string[];
 }
 
 export interface Finding {
@@ -290,7 +296,29 @@ export interface ChartResponse {
   kind_labels: Record<string, string>;
   numerology: Numerology;
   gender: Gender;
+  /** One colour per house, keyed by house number order (1..12). */
+  themes: HouseTheme[];
+  palette_note: string;
   disclaimer: string;
+}
+
+/**
+ * A house's colour, taken from its element and its karaka rather than from
+ * how its reading came out. A house keeps this whatever the chart says, so
+ * the reader learns the palette once and can navigate by it afterwards.
+ */
+export interface HouseTheme {
+  house: number;
+  /** A short name for the mood, used as the section label. */
+  name: string;
+  element: string;
+  /** Accent colour: rules, dots, chips. */
+  hue: string;
+  /** A darker value of the same hue, safe as body text on the light ground. */
+  ink: string;
+  /** A very pale value, for panel backgrounds. */
+  wash: string;
+  why: string;
 }
 
 export type Gender = "female" | "male" | "other" | "unspecified";

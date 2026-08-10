@@ -234,7 +234,7 @@ def _vipreeta_yogas(chart: Chart) -> list[Yoga]:
                     name=f"Vipreeta Raja Yoga ({label})",
                     rule=(
                         f"The lord of the {_ord(h)} placed in a dusthana "
-                        "(6th, 8th or 12th) — one difficulty undoing another."
+                        "(6th, 8th or 12th): one difficulty undoing another."
                     ),
                     source="Phaladeepika ch. 6",
                     planets=(lord,),

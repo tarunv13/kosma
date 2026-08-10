@@ -267,7 +267,7 @@ def is_natural_benefic(chart: Chart, planet: str) -> tuple[bool, str]:
         elong = (chart.planets["Moon"].longitude - chart.planets["Sun"].longitude) % 360
         bright = 72.0 <= elong <= 288.0
         return bright, (
-            f"Moon {'bright' if bright else 'dark'} — {elong:.1f}° from the Sun "
+            f"Moon {'bright' if bright else 'dark'} at {elong:.1f}° from the Sun "
             f"({'benefic' if bright else 'malefic'} by BPHS ch. 4)"
         )
     if planet == "Mercury":

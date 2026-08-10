@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useState } from "react";
 import HouseDossier from "@/components/HouseDossier";
 import { useChartStore } from "@/store/useChartStore";
@@ -35,42 +35,79 @@ function FindingRow({ finding, onFocus }: { finding: Finding; onFocus: () => voi
   const cited = evidence.filter((e) => finding.citations.includes(e.id));
   const labels = useChartStore((s) => s.chart?.kind_labels ?? {});
   const plain = finding.plain;
+  const reduced = useReducedMotion() ?? false;
+
+  const theme = house?.theme;
 
   return (
-    <div
-      className="border-b border-hair py-4 last:border-0"
+    <motion.div
+      className="relative border-b border-hair py-6 pl-6 last:border-0"
       onMouseEnter={onFocus}
+      initial={reduced ? false : { opacity: 0, y: 12 }}
+      whileInView={reduced ? undefined : { opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-60px" }}
+      transition={{ duration: 0.45, ease: [0.22, 0.61, 0.36, 1] }}
     >
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <span className="rounded-md border border-slate-300 bg-wash px-1.5 py-0.5 font-mono text-micro font-bold text-ink-2">
-          H{String(finding.house).padStart(2, "0")}
+      {/*
+        The thread. A rule in the house's own colour runs down the left of
+        every reading, so scrolling the report reads as one continuous strand
+        changing hue as the subject changes, rather than as twelve unrelated
+        cards. The colour comes from the house's element and karaka, never
+        from whether the reading came out well.
+      */}
+      <span
+        aria-hidden
+        className="absolute left-0 top-0 h-full w-[3px] rounded-full"
+        style={{ backgroundColor: theme?.hue ?? "#CBD5E1" }}
+      />
+
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span
+          className="font-mono text-micro font-bold uppercase tracking-wider"
+          style={{ color: theme?.ink }}
+        >
+          {theme?.name ?? finding.topic}
         </span>
-        <span className="min-w-[12rem] flex-1 text-base font-semibold text-ink">
-          {finding.topic}
+        <span className="font-mono text-micro text-ink-3">
+          house {finding.house}
         </span>
-        {verdictChip(finding.verdict)}
+        <span className="ml-auto">{verdictChip(finding.verdict)}</span>
       </div>
 
       {/*
-        The reading, in ordinary English, before any of the machinery. This is
-        what someone who has not read Parashara came for; the verdict word, the
-        factor kinds and the ledger are all still here, one disclosure away.
+        Ordered the way a reader meets it: what this area of life is, then
+        what their chart says about it as one connected passage, then how far
+        to trust it. The sources used to sit inside the passage, where a
+        reader following a sentence about their marriage had to step over a
+        chapter reference to reach the end of the thought. They now come after.
       */}
-      <div className="mt-3 pl-10">
-        <p className="text-base font-medium leading-relaxed text-ink">
-          {plain.headline}
+      <p className="mt-3 text-lg font-medium leading-relaxed text-ink">
+        {plain.headline}
+      </p>
+      {plain.body.map((line) => (
+        <p key={line} className="mt-3 text-base leading-relaxed text-ink-2">
+          {line}
         </p>
-        {plain.body.map((line) => (
-          <p key={line} className="mt-2 text-base leading-relaxed text-ink-2">
-            {line}
-          </p>
-        ))}
-        <p className="mt-3 border-l-2 border-slate-300 pl-3 text-meta leading-relaxed text-ink-2">
-          {plain.limit}
+      ))}
+      {plain.karaka_note && (
+        <p className="mt-3 text-base leading-relaxed text-ink-2">
+          {plain.karaka_note}
         </p>
-      </div>
+      )}
+      <p
+        className="mt-4 rounded-lg px-3 py-2 text-meta leading-relaxed text-ink-2"
+        style={{ backgroundColor: theme?.wash }}
+      >
+        {plain.limit}
+      </p>
+      {plain.sources.length > 0 && (
+        <p className="mt-2 font-mono text-micro leading-relaxed text-ink-3">
+          Read from {plain.sources.join(", ")}. Chapter references are in the
+          evidence below.
+        </p>
+      )}
 
-      <div className="mt-3 flex flex-wrap items-center gap-2 pl-10">
+      <div className="mt-4 flex flex-wrap items-center gap-3">
         <button
           type="button"
           onClick={() => setDossier((v) => !v)}
@@ -148,7 +185,7 @@ function FindingRow({ finding, onFocus }: { finding: Finding; onFocus: () => voi
           ))}
         </motion.ul>
       )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -224,7 +261,7 @@ export default function EvidencePanel() {
           <div className="panel-body">
             <p className="mb-4 max-w-[64ch] text-meta leading-relaxed text-ink-2">
               These were tested and no direction reached the threshold. That is a
-              result, not a gap — any reading of them would be invention.
+              result, not a gap. Any reading of them would be invention.
             </p>
             <div className="grid gap-4 sm:grid-cols-2">
               {chart.withheld.map((w) => (

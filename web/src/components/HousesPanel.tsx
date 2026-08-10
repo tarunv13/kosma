@@ -1,5 +1,6 @@
 "use client";
 
+import { motion, useReducedMotion } from "framer-motion";
 import { useState } from "react";
 import HouseDossier from "@/components/HouseDossier";
 import { useChartStore } from "@/store/useChartStore";
@@ -22,6 +23,7 @@ export default function HousesPanel() {
   const chart = useChartStore((s) => s.chart);
   const [open, setOpen] = useState<number | null>(null);
   const setHoveredHouse = useChartStore((s) => s.setHoveredHouse);
+  const reduced = useReducedMotion() ?? false;
 
   if (!chart) return null;
 
@@ -37,23 +39,42 @@ export default function HousesPanel() {
         <p className="mb-4 max-w-[70ch] text-meta leading-relaxed text-ink-2">
           The structure of the whole chart, including the houses the gate
           declined to report on. Describing what a house governs and who rules
-          it is not a claim about your life, so it needs no corroboration —
-          which is exactly why it sits apart from the findings.
+          it is not a claim about your life, so it needs no corroboration, which is
+          exactly why it sits apart from the findings.
         </p>
 
         <div className="grid gap-3 sm:grid-cols-2">
           {chart.houses.map((h) => (
-            <div
+            <motion.div
               key={h.house}
               onMouseEnter={() => setHoveredHouse(h.house)}
               onMouseLeave={() => setHoveredHouse(null)}
-              className="rounded-xl border border-slate-200/90 bg-vellum p-4 shadow-sm"
+              className="relative overflow-hidden rounded-xl border border-slate-200/90 p-4 pl-5 shadow-sm"
+              style={{ backgroundColor: h.theme.wash }}
+              initial={reduced ? false : { opacity: 0, y: 14 }}
+              whileInView={reduced ? undefined : { opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{
+                duration: 0.4,
+                delay: reduced ? 0 : Math.min(h.house, 6) * 0.04,
+                ease: [0.22, 0.61, 0.36, 1],
+              }}
             >
+              <span
+                aria-hidden
+                className="absolute left-0 top-0 h-full w-[3px]"
+                style={{ backgroundColor: h.theme.hue }}
+              />
               <div className="mb-1.5 flex flex-wrap items-baseline gap-2">
                 <span className="rounded-md border border-slate-300 bg-wash px-1.5 py-0.5 font-mono text-micro font-bold text-ink-2">
                   H{String(h.house).padStart(2, "0")}
                 </span>
-                <span className="text-base font-semibold text-ink">{h.topic}</span>
+                <span
+                  className="text-base font-semibold"
+                  style={{ color: h.theme.ink }}
+                >
+                  {h.theme.name}
+                </span>
                 <span className="ml-auto font-mono text-micro font-medium text-ink-2">
                   {h.sign}
                 </span>
@@ -74,7 +95,7 @@ export default function HousesPanel() {
                     <span
                       key={o.name}
                       className="chip chip-muted"
-                      title={`${o.name} — ${o.dignity}`}
+                      title={`${o.name}: ${o.dignity}`}
                     >
                       {o.symbol} {o.glyph}
                       {o.retrograde ? " ℞" : ""}
@@ -105,7 +126,7 @@ export default function HousesPanel() {
                   <HouseDossier house={h} />
                 </div>
               )}
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>
