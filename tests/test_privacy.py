@@ -215,8 +215,7 @@ def test_report_contains_no_notdef_boxes() -> None:
 
     text = "".join((p.extract_text() or "") for p in PdfReader(io.BytesIO(raw)).pages)
     assert "■" not in text, (
-        "the report drew a notdef box: a symbol was requested from a font that "
-        "has no glyph for it"
+        "the report drew a notdef box: a symbol was requested from a font that has no glyph for it"
     )
 
 

@@ -74,7 +74,9 @@ def test_every_kind_reads_differently_for_and_against(kind: str) -> None:
 
 
 def test_supporting_evidence_lands_in_favour() -> None:
-    reading = plainspeak.house_reading(1, "self", "supported", "indicative", [_ev("ashtakavarga", 1)])
+    reading = plainspeak.house_reading(
+        1, "self", "supported", "indicative", [_ev("ashtakavarga", 1)]
+    )
     assert any(b.startswith("In its favour") for b in reading.body)
     assert not any(b.startswith("Against it") for b in reading.body)
 

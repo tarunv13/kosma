@@ -304,10 +304,7 @@ def _varna(a: Person, b: Person) -> Koota:
     forward = _VARNA_RANK[vg] >= _VARNA_RANK[vb]
     score = 1.0 if forward else 0.0
     if basis == "roles":
-        how = (
-            f"Taken in the classical direction: {groom.label} as vara and "
-            f"{bride.label} as kanya."
-        )
+        how = f"Taken in the classical direction: {groom.label} as vara and {bride.label} as kanya."
     else:
         how = (
             "Neither participant gave the two roles this rule is written for, "

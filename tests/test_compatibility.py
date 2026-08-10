@@ -308,9 +308,7 @@ def test_roles_decide_varna_regardless_of_entry_order(pa: cp.Person, pb: cp.Pers
     )
 
 
-def test_without_roles_entry_order_still_decides_and_says_so(
-    pa: cp.Person, pb: cp.Person
-) -> None:
+def test_without_roles_entry_order_still_decides_and_says_so(pa: cp.Person, pb: cp.Person) -> None:
     k = next(k for k in cp.guna_milan(pa, pb).kootas if k.name == "Varna")
     assert "order entered" in k.detail
 
@@ -322,9 +320,7 @@ def test_with_roles_the_detail_names_them(pa: cp.Person, pb: cp.Person) -> None:
     assert "vara" in k.detail and "kanya" in k.detail
 
 
-def test_other_and_unspecified_fall_back_rather_than_guess(
-    pa: cp.Person, pb: cp.Person
-) -> None:
+def test_other_and_unspecified_fall_back_rather_than_guess(pa: cp.Person, pb: cp.Person) -> None:
     """A role the rule was not written for must not be assigned one."""
     a = cp.Person(label=pa.label, chart=pa.chart, gender="other")
     b = cp.Person(label=pb.label, chart=pb.chart, gender="female")

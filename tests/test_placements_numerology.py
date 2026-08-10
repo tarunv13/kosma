@@ -202,3 +202,38 @@ def test_missing_name_does_not_fabricate_a_number() -> None:
 def test_numerology_states_that_it_casts_no_vote() -> None:
     r = num.compute("Anyone", date(2000, 1, 1))
     assert "no vote" in r["note"]
+
+
+# ── the symbol font must be trusted only per glyph ────────────────────
+
+
+def test_symbol_coverage_is_checked_per_glyph() -> None:
+    """A font with partial coverage must not license every symbol.
+
+    Most faces carrying the planets are missing the lunar nodes, U+260A and
+    U+260B. Deciding coverage from the set as a whole -- the first attempt
+    here compared string widths -- accepts such a font and then draws a box
+    for Rahu and Ketu.
+    """
+    from kosma import pdf_generator as pg
+
+    for planet in pg.SYMBOLS:
+        sigil = pg._sigil(planet)
+        if planet in pg.SYMBOL_OK:
+            assert pg.SYMBOLS[planet] in sigil
+        else:
+            assert sigil == pg.ABBREV[planet]
+            assert pg.SYMBOLS[planet] not in sigil
+
+
+def test_no_symbol_font_still_renders_every_planet() -> None:
+    """With no font at all, every planet must still print something."""
+    from kosma import pdf_generator as pg
+
+    saved_font, saved_ok = pg.SYMBOL_FONT, pg.SYMBOL_OK
+    try:
+        pg.SYMBOL_FONT, pg.SYMBOL_OK = None, frozenset()
+        for planet in pg.SYMBOLS:
+            assert pg._sigil(planet) == pg.ABBREV[planet]
+    finally:
+        pg.SYMBOL_FONT, pg.SYMBOL_OK = saved_font, saved_ok

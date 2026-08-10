@@ -43,9 +43,7 @@ for _letters, _value in (
     for _ch in _letters:
         _CHALDEAN[_ch] = _value
 
-_PYTHAGOREAN: dict[str, int] = {
-    chr(ord("A") + i): (i % 9) + 1 for i in range(26)
-}
+_PYTHAGOREAN: dict[str, int] = {chr(ord("A") + i): (i % 9) + 1 for i in range(26)}
 
 # Numbers held to carry their own meaning and not reduced further.
 MASTER_NUMBERS = (11, 22, 33)
@@ -126,9 +124,7 @@ def _reading(n: int, method: str) -> NumberReading:
 def compute(name: str, birth: date) -> dict[str, Any]:
     """Every number this module will state, each labelled with its method."""
     mulank = _reduce(birth.day, keep_master=False)
-    bhagyank = _reduce(
-        sum(int(d) for d in f"{birth.year}{birth.month:02d}{birth.day:02d}")
-    )
+    bhagyank = _reduce(sum(int(d) for d in f"{birth.year}{birth.month:02d}{birth.day:02d}"))
 
     chaldean = _name_number(name, _CHALDEAN)
     pythagorean = _name_number(name, _PYTHAGOREAN)

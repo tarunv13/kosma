@@ -92,10 +92,22 @@ _FONT_CANDIDATES = (
 )
 
 SYMBOL_FONT: str | None = None
+SYMBOL_OK: frozenset[str] = frozenset()
 
 
-def _register_symbol_font() -> str | None:
-    """Find a face that actually carries the graha glyphs, or return None."""
+def _register_symbol_font() -> tuple[str | None, frozenset[str]]:
+    """Find a face carrying the graha glyphs, and record which it actually has.
+
+    Coverage is checked per glyph against the font's own character map, not by
+    comparing widths. Width comparison was the first attempt and it is not
+    sound: a face carrying seven of the nine still produces several distinct
+    widths, passes the check, and then draws a box for the two it lacks. The
+    lunar nodes are exactly the two most fonts are missing, so that is the
+    common case rather than a corner one.
+
+    Partial coverage is therefore honoured per planet: whatever the font has
+    is drawn as a symbol, and the rest fall back to the abbreviation.
+    """
     import os
 
     from reportlab.pdfbase import pdfmetrics
@@ -107,21 +119,23 @@ def _register_symbol_font() -> str | None:
         name = "KosmaSymbols"
         try:
             pdfmetrics.registerFont(TTFont(name, path))
-            # A face missing these renders every one at the same notdef width.
-            widths = {pdfmetrics.stringWidth(s, name, 10) for s in SYMBOLS.values()}
-            if len(widths) > 1:
-                return name
+            char_map = getattr(pdfmetrics.getFont(name).face, "charToGlyph", None)
+            if not char_map:
+                continue
+            covered = frozenset(planet for planet, sym in SYMBOLS.items() if ord(sym) in char_map)
+            if covered:
+                return name, covered
         except Exception:
             continue
-    return None
+    return None, frozenset()
 
 
-SYMBOL_FONT = _register_symbol_font()
+SYMBOL_FONT, SYMBOL_OK = _register_symbol_font()
 
 
 def _sigil(planet: str) -> str:
     """The symbol where it will render, the abbreviation where it will not."""
-    if SYMBOL_FONT:
+    if SYMBOL_FONT and planet in SYMBOL_OK:
         return f'<font face="{SYMBOL_FONT}">{SYMBOLS[planet]}</font>'
     return ABBREV[planet]
 
@@ -1190,12 +1204,8 @@ def _placements_section(natal: Chart, styles: dict) -> list:
             )
         )
         out.append(Paragraph(_esc(r.signifies), styles["body"]))
-        out.append(
-            Paragraph(f"<b>Strengths.</b> {_esc(r.strengths)}", styles["body"])
-        )
-        out.append(
-            Paragraph(f"<b>Weaknesses.</b> {_esc(r.weaknesses)}", styles["body"])
-        )
+        out.append(Paragraph(f"<b>Strengths.</b> {_esc(r.strengths)}", styles["body"]))
+        out.append(Paragraph(f"<b>Weaknesses.</b> {_esc(r.weaknesses)}", styles["body"]))
         out.append(Paragraph(f"<b>Temperament.</b> {_esc(r.nature)}", styles["body"]))
         if r.notable:
             out.append(Paragraph(_esc(r.notable), styles["muted"]))
@@ -1212,11 +1222,7 @@ def _placements_section(natal: Chart, styles: dict) -> list:
         )
         out.append(Spacer(1, 8))
 
-    out.append(
-        Paragraph(
-            _esc(plc.REMEDY_CAVEAT) + " " + _esc(plc.RATNA_CAVEAT), styles["muted"]
-        )
-    )
+    out.append(Paragraph(_esc(plc.REMEDY_CAVEAT) + " " + _esc(plc.RATNA_CAVEAT), styles["muted"]))
     return out
 
 

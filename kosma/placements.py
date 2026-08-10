@@ -314,32 +314,110 @@ def house_classes(house: int) -> tuple[str, ...]:
 # with invented particulars.
 
 NOTABLE: dict[tuple[str, int], str] = {
-    ("Sun", 10): "Parashara treats the Sun in the 10th as directly strengthened — it gains dig bala (directional strength) here, and the house of action is its natural ground.",
-    ("Sun", 1): "The Sun in the ascendant gives the chart its temperament directly: the self and the significator of self occupy the same house.",
-    ("Moon", 4): "The Moon in the 4th is in its own natural house — the karaka of the mother and of inner ground, sitting in the bhava of both.",
-    ("Moon", 10): "The Moon in the 10th gains dig bala. Public life suits it, and public life also exposes its fluctuation.",
-    ("Mars", 7): "Mars in the 7th is one of the classical Mangal (kuja) dosha positions, held to press on marriage through friction rather than absence.",
-    ("Mars", 1): "Mars in the ascendant is a Mangal dosha position, and gives the body and temperament its edge directly.",
-    ("Mars", 8): "Mars in the 8th is a Mangal dosha position and touches longevity and crisis; the classical advice is to spend its force deliberately.",
-    ("Mars", 3): "Mars in the 3rd is at its most useful — courage and initiative in the house of exactly those, and an upachaya besides.",
-    ("Mercury", 1): "Mercury in the ascendant gives the intelligence a verbal, analytical cast that shows in how the person first presents.",
-    ("Mercury", 10): "Mercury in the 10th gains dig bala; work involving speech, writing or figures is favoured.",
-    ("Jupiter", 1): "Jupiter in the ascendant gains dig bala and is among the most protective single placements in the classical literature.",
-    ("Jupiter", 5): "Jupiter in the 5th sits in the house of children and merit as their natural significator — the texts read this warmly.",
-    ("Jupiter", 6): "Jupiter in the 6th is a benefic in a dusthana: its expansiveness is spent on debt, illness and enemies rather than on growth.",
-    ("Venus", 7): "Venus in the 7th is the karaka of marriage in the house of marriage. Classical opinion is divided on whether a karaka in its own bhava helps or overloads it.",
-    ("Venus", 4): "Venus in the 4th gains dig bala: comfort, vehicles and the pleasantness of home are favoured.",
-    ("Venus", 12): "Venus in the 12th is read as strong for the pleasures of the 12th — seclusion, foreign places, the bed — and weak for anything requiring restraint.",
-    ("Saturn", 7): "Saturn in the 7th gains dig bala and delays partnership rather than denying it; what forms late, in this reading, forms durably.",
-    ("Saturn", 1): "Saturn in the ascendant is a heavy placement for the body and early temperament, and among the most reliably maturing ones.",
-    ("Saturn", 3): "Saturn in the 3rd is an upachaya placement: courage arrives through repetition rather than by temperament.",
-    ("Saturn", 6): "Saturn in the 6th is a malefic in a dusthana, which the texts read as genuinely good — it is well suited to grinding down debt, illness and opposition.",
-    ("Saturn", 10): "Saturn in the 10th gains dig bala. Career is slow, self-built, and rarely lost once established.",
-    ("Rahu", 3): "Rahu in the 3rd is among its better placements: an upachaya where unconventional ambition converts into actual initiative.",
-    ("Rahu", 6): "Rahu in the 6th is classically strong — it fights, and here there is something to fight.",
-    ("Rahu", 11): "Rahu in the 11th is read as favourable for gain, with the standing caution that the gain outpaces the ability to hold it.",
-    ("Ketu", 12): "Ketu in the 12th is its most classically favourable position: the karaka of release, in the house of it.",
-    ("Ketu", 9): "Ketu in the 9th complicates inherited belief — the tradition given is rarely the one kept.",
+    (
+        "Sun",
+        10,
+    ): "Parashara treats the Sun in the 10th as directly strengthened — it gains dig bala (directional strength) here, and the house of action is its natural ground.",
+    (
+        "Sun",
+        1,
+    ): "The Sun in the ascendant gives the chart its temperament directly: the self and the significator of self occupy the same house.",
+    (
+        "Moon",
+        4,
+    ): "The Moon in the 4th is in its own natural house — the karaka of the mother and of inner ground, sitting in the bhava of both.",
+    (
+        "Moon",
+        10,
+    ): "The Moon in the 10th gains dig bala. Public life suits it, and public life also exposes its fluctuation.",
+    (
+        "Mars",
+        7,
+    ): "Mars in the 7th is one of the classical Mangal (kuja) dosha positions, held to press on marriage through friction rather than absence.",
+    (
+        "Mars",
+        1,
+    ): "Mars in the ascendant is a Mangal dosha position, and gives the body and temperament its edge directly.",
+    (
+        "Mars",
+        8,
+    ): "Mars in the 8th is a Mangal dosha position and touches longevity and crisis; the classical advice is to spend its force deliberately.",
+    (
+        "Mars",
+        3,
+    ): "Mars in the 3rd is at its most useful — courage and initiative in the house of exactly those, and an upachaya besides.",
+    (
+        "Mercury",
+        1,
+    ): "Mercury in the ascendant gives the intelligence a verbal, analytical cast that shows in how the person first presents.",
+    (
+        "Mercury",
+        10,
+    ): "Mercury in the 10th gains dig bala; work involving speech, writing or figures is favoured.",
+    (
+        "Jupiter",
+        1,
+    ): "Jupiter in the ascendant gains dig bala and is among the most protective single placements in the classical literature.",
+    (
+        "Jupiter",
+        5,
+    ): "Jupiter in the 5th sits in the house of children and merit as their natural significator — the texts read this warmly.",
+    (
+        "Jupiter",
+        6,
+    ): "Jupiter in the 6th is a benefic in a dusthana: its expansiveness is spent on debt, illness and enemies rather than on growth.",
+    (
+        "Venus",
+        7,
+    ): "Venus in the 7th is the karaka of marriage in the house of marriage. Classical opinion is divided on whether a karaka in its own bhava helps or overloads it.",
+    (
+        "Venus",
+        4,
+    ): "Venus in the 4th gains dig bala: comfort, vehicles and the pleasantness of home are favoured.",
+    (
+        "Venus",
+        12,
+    ): "Venus in the 12th is read as strong for the pleasures of the 12th — seclusion, foreign places, the bed — and weak for anything requiring restraint.",
+    (
+        "Saturn",
+        7,
+    ): "Saturn in the 7th gains dig bala and delays partnership rather than denying it; what forms late, in this reading, forms durably.",
+    (
+        "Saturn",
+        1,
+    ): "Saturn in the ascendant is a heavy placement for the body and early temperament, and among the most reliably maturing ones.",
+    (
+        "Saturn",
+        3,
+    ): "Saturn in the 3rd is an upachaya placement: courage arrives through repetition rather than by temperament.",
+    (
+        "Saturn",
+        6,
+    ): "Saturn in the 6th is a malefic in a dusthana, which the texts read as genuinely good — it is well suited to grinding down debt, illness and opposition.",
+    (
+        "Saturn",
+        10,
+    ): "Saturn in the 10th gains dig bala. Career is slow, self-built, and rarely lost once established.",
+    (
+        "Rahu",
+        3,
+    ): "Rahu in the 3rd is among its better placements: an upachaya where unconventional ambition converts into actual initiative.",
+    (
+        "Rahu",
+        6,
+    ): "Rahu in the 6th is classically strong — it fights, and here there is something to fight.",
+    (
+        "Rahu",
+        11,
+    ): "Rahu in the 11th is read as favourable for gain, with the standing caution that the gain outpaces the ability to hold it.",
+    (
+        "Ketu",
+        12,
+    ): "Ketu in the 12th is its most classically favourable position: the karaka of release, in the house of it.",
+    (
+        "Ketu",
+        9,
+    ): "Ketu in the 9th complicates inherited belief — the tradition given is rarely the one kept.",
 }
 
 
