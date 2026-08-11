@@ -46,3 +46,7 @@ build/
 .env.local
 *.pem
 *.key
+
+# Playwright CLI session artefacts: snapshots, console and network logs.
+# Per-run debugging output, never part of the source.
+.playwright-cli/

@@ -1378,17 +1378,32 @@ def _disclaimer(styles: dict) -> list:
 # ── Footer ────────────────────────────────────────────────────────────
 
 
-def _footer(canvas, doc):
-    canvas.saveState()
-    canvas.setFont("Helvetica-Oblique", 8)
-    canvas.setFillColor(MUTED)
-    canvas.drawCentredString(
-        A4[0] / 2,
-        1.2 * cm,
-        f"KOSMA  \u00b7  page {doc.page}  \u00b7  generated "
-        f"{datetime.now(UTC).strftime('%Y-%m-%d %H:%MZ')} UTC",
-    )
-    canvas.restoreState()
+def _make_footer(stamp: datetime):
+    """Build the page footer against a fixed date.
+
+    This used to call `datetime.now()` directly and print the time to the
+    minute, which was wrong twice over. It ignored the `today` the rest of the
+    report is computed against, so the transits and the footer could disagree.
+    And the embedded /CreationDate is zeroed precisely so the file does not
+    record when someone sought a reading; printing that same fact in the
+    visible footer, to the minute, gave it back in every copy they forward.
+
+    A date is useful to a reader, because it says how current the transits
+    are. The minute is not, so it is gone.
+    """
+
+    def footer(canvas, doc):
+        canvas.saveState()
+        canvas.setFont("Helvetica-Oblique", 8)
+        canvas.setFillColor(MUTED)
+        canvas.drawCentredString(
+            A4[0] / 2,
+            1.2 * cm,
+            f"KOSMA  \u00b7  page {doc.page}  \u00b7  transits as of {stamp.strftime('%Y-%m-%d')}",
+        )
+        canvas.restoreState()
+
+    return footer
 
 
 # ── Public API ────────────────────────────────────────────────────────
@@ -1490,5 +1505,9 @@ def generate_pdf(
     story += _numerology_section(name, year, month, day, styles)
     story += _disclaimer(styles)
 
-    doc.build(story, onFirstPage=_footer, onLaterPages=_footer)
+    # The footer is built against the same `today` the report is computed
+    # against, so the two cannot disagree and the output stays byte-identical
+    # for identical input.
+    footer = _make_footer(today)
+    doc.build(story, onFirstPage=footer, onLaterPages=footer)
     return buf.getvalue()

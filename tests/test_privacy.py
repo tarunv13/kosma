@@ -280,3 +280,76 @@ def test_no_interactive_docs_are_published(client: TestClient) -> None:
     """Schema endpoints hand an attacker the whole input surface."""
     for path in ("/docs", "/redoc", "/openapi.json"):
         assert client.get(path).status_code == 404, f"{path} is reachable"
+
+
+def test_favicon_does_not_404(client: TestClient) -> None:
+    """Browsers fetch /favicon.ico unprompted.
+
+    Nothing on the site links to it, so this was invisible in review and
+    logged an error in every visitor's console. Caught by a Playwright run
+    reporting one console error on a page that otherwise looked clean.
+    """
+    r = client.get("/favicon.ico")
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("image/")
+
+
+def test_the_root_file_route_does_not_shadow_named_routes(client: TestClient) -> None:
+    """A single-segment path parameter swallows every one-segment route
+    defined after it.
+
+    When `/{filename}` was registered before `/healthz`, FastAPI matched it
+    first and /healthz returned 404 -- which is the path Render polls to
+    decide whether a deploy is live. Ordering is the only thing keeping this
+    correct, so it is asserted rather than assumed.
+    """
+    for path in ("/healthz", "/version", "/", "/compare", "/legacy"):
+        assert client.get(path).status_code == 200, f"{path} was shadowed"
+
+
+def test_root_file_route_refuses_traversal(client: TestClient) -> None:
+    """The allowlist is the boundary; nothing else may be read through it."""
+    for attempt in (
+        "/../pyproject.toml",
+        "/..%2fpyproject.toml",
+        "/index.html",
+        "/package.json",
+    ):
+        assert client.get(attempt).status_code in (307, 404), f"{attempt} was served"
+
+
+def test_generation_time_is_not_printed_in_the_report() -> None:
+    """The visible footer must not record when the reading was sought.
+
+    The embedded /CreationDate is zeroed for exactly this reason, and the
+    footer was handing the same fact back by printing the wall clock to the
+    minute on every page. It also ignored the pinned `today`, which made the
+    output non-deterministic: two runs either side of a minute boundary
+    produced different bytes, so the determinism test failed roughly once in
+    sixty runs rather than never.
+    """
+    import io
+    from datetime import UTC, datetime
+
+    from pypdf import PdfReader
+
+    pinned = datetime(2026, 5, 25, 14, 37, tzinfo=UTC)
+    raw = pdf_generator.generate_pdf(
+        name="Probe",
+        year=2000,
+        month=1,
+        day=1,
+        hour=12,
+        minute=0,
+        lat=51.5074,
+        lon=-0.1278,
+        tz=0.0,
+        place="London, UK",
+        today=pinned,
+    )
+    text = "".join((p.extract_text() or "") for p in PdfReader(io.BytesIO(raw)).pages)
+
+    assert "2026-05-25" in text, "the reader still needs to know how current the transits are"
+    assert "14:37" not in text, "the footer printed the minute the report was generated"
+    # And it must follow the pinned date rather than the clock.
+    assert datetime.now(UTC).strftime("%H:%M") not in text

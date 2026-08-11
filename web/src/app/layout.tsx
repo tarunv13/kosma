@@ -33,6 +33,14 @@ export const metadata: Metadata = {
   description:
     "A Vedic chart computed to the arc-second, showing only what it can support.",
   robots: { index: false, follow: false },
+  // Declared explicitly, and the file is served at /favicon.ico as well.
+  // Browsers request /favicon.ico whether or not a page asks them to, so
+  // without both every visitor logged a 404 in the console before they had
+  // done anything.
+  icons: {
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    shortcut: "/favicon.ico",
+  },
 };
 
 export const viewport: Viewport = {

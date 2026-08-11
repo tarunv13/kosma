@@ -319,6 +319,22 @@ async def legacy_index(request: Request):
     )
 
 
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    """Answer the request every browser makes without being asked.
+
+    Nothing linked to /favicon.ico, but browsers fetch it on their own, so the
+    first thing every visitor saw in the console was a 404 for a file the site
+    never advertised. Serving the existing SVG here costs one route and one
+    file; browsers accept an SVG at this path when the content type says so.
+    """
+    return FileResponse(
+        os.path.join(_HERE, "static", "favicon.svg"),
+        media_type="image/svg+xml",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
 @app.get("/healthz")
 async def healthz():
     return {"ok": True}
@@ -834,4 +850,37 @@ async def api_grounding(
         content=grounding.to_json(pack),
         media_type="application/json",
         headers={"Cache-Control": "no-store, max-age=0", "Pragma": "no-cache"},
+    )
+
+
+# Root-level files the frontend build emits from web/public: favicon.svg
+# today, robots.txt or a manifest later. They cannot be served by mounting
+# web/out at "/", which would shadow every route above, so they are served
+# by name.
+#
+# The allowlist is the security boundary. Taking the filename from the URL
+# and joining it to a directory is how directory traversal happens, and
+# rejecting "..", separators and anything not on this list is cheaper and
+# more obviously correct than trying to sanitise a path afterwards.
+_SPA_ROOT_FILES = frozenset({"favicon.svg", "robots.txt", "manifest.webmanifest"})
+_ROOT_FILE_TYPES = {
+    ".svg": "image/svg+xml",
+    ".txt": "text/plain; charset=utf-8",
+    ".webmanifest": "application/manifest+json",
+}
+
+
+@app.get("/{filename}", include_in_schema=False)
+async def spa_root_file(filename: str):
+    """Serve one of a fixed set of files from the exported bundle's root."""
+    if not _HAS_SPA or filename not in _SPA_ROOT_FILES:
+        raise HTTPException(status_code=404)
+    path = os.path.join(_WEB_OUT, filename)
+    if not os.path.isfile(path):
+        raise HTTPException(status_code=404)
+    suffix = os.path.splitext(filename)[1]
+    return FileResponse(
+        path,
+        media_type=_ROOT_FILE_TYPES.get(suffix, "application/octet-stream"),
+        headers={"Cache-Control": "public, max-age=86400"},
     )
