@@ -207,8 +207,24 @@ async def security_headers(request: Request, call_next):
     response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
     response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
     response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
-    # Version banners help nobody but a scanner.
+
+    # Version banners help nobody but a scanner. Setting this here is not
+    # sufficient on its own: uvicorn writes its own Server header at the
+    # protocol layer, below ASGI, so the response went out carrying both
+    # "uvicorn" and "kosma" with uvicorn's first. The server is therefore
+    # started with --no-server-header, and this line supplies the only one.
     response.headers["Server"] = "kosma"
+
+    # Tell the browser never to try this origin over plain HTTP again. Sent
+    # unconditionally because browsers ignore it on an http:// response, so
+    # it costs nothing in local development.
+    #
+    # Deliberately without `includeSubDomains` and without `preload`. Both are
+    # hard to walk back: preload lands the domain in a list compiled into
+    # browsers, and includeSubDomains would commit every future subdomain of
+    # a custom domain to HTTPS before one exists to check. A year of max-age
+    # on this host is the part that is safe to assert today.
+    response.headers["Strict-Transport-Security"] = "max-age=31536000"
     script_src = "'self'"
     if _HAS_SPA:
         extra = _inline_script_hashes(request.url.path.rstrip("/") or "/")

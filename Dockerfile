@@ -84,9 +84,15 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 # (Render among them) inject it as an environment variable, and a container
 # that hard-codes 8000 is unreachable there. Falls back to 8000 so `docker run`
 # with no environment still works, which is what CI does.
+# --no-server-header because uvicorn writes its Server banner below the ASGI
+# layer, where the app's middleware cannot replace it: responses were going out
+# carrying both "uvicorn" and "kosma", with uvicorn's read first by anything
+# scanning. --no-date-header drops a second-resolution timestamp nothing needs.
 CMD uvicorn kosma.main:app \
       --host 0.0.0.0 \
       --port "${PORT:-8000}" \
       --proxy-headers \
       --forwarded-allow-ips='*' \
-      --no-access-log
+      --no-access-log \
+      --no-server-header \
+      --no-date-header

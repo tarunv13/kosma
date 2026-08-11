@@ -12,12 +12,16 @@ Only the `main` branch and the latest tagged release receive security fixes.
 
 **Please do not open a public GitHub issue for a security report.**
 
-Use one of:
+Use **GitHub Private Vulnerability Reporting**: open the `Security` tab on
+this repository and choose `Report a vulnerability`. The thread stays private
+between you and the maintainers until a fix ships, and it needs no account
+beyond the GitHub one you are already using.
 
-1. **GitHub Private Vulnerability Reporting**:
-   open `Security` -> `Report a vulnerability` on this repository.
-2. **Email**: `security@kosma.invalid` (replace with a real address before
-   you publish the project).
+There is deliberately no email address here. This file previously listed
+`security@kosma.invalid`, a placeholder that survived into the public
+repository, so anyone who followed it would have reported a vulnerability into
+a mailbox that does not exist. A single working channel is better than two
+where one is a dead end.
 
 Include:
 
@@ -69,3 +73,61 @@ deployment):
   `--no-access-log` to uvicorn or scrub IPs at the platform if you treat
   IPs as personal data.
 - Side-channels like timing attacks against the rate limiter.
+
+## Accepted findings
+
+Findings that a scanner will report and that we have examined and chosen not
+to act on. Each is recorded here so the decision is reviewable rather than
+forgotten.
+
+### `sharp` (GHSA-f88m-g3jw-g9cj, 3 high): not exposed
+
+`npm audit` reports libvips CVEs in `sharp`, reachable only as a transitive
+dependency of `next`. Remediation requires `next@16`, a breaking major
+upgrade.
+
+The vulnerable code cannot execute in this deployment:
+
+- `sharp` backs Next's image optimiser, and `next.config.mjs` sets
+  `images: { unoptimized: true }`, so it is not invoked during the build.
+- The client is a static export. The runtime container copies only
+  `web/out`, which contains HTML, CSS, JS, text and a font, with no native
+  binaries. There is no Node runtime and no `node_modules` in the final
+  image at all.
+
+Exploiting it would require the ability to influence the build, which means
+write access to the repository. Anyone with that can do considerably worse
+than reach an image decoder.
+
+This is reassessed whenever the frontend moves off a static export, or
+whenever `images.unoptimized` is turned off. Either change makes the finding
+live and the upgrade necessary.
+
+## Verified posture
+
+Checked against a running instance rather than read off the source, most
+recently on 11 August 2026:
+
+- One `Server: kosma` header and no version banner. uvicorn writes its own
+  banner beneath ASGI, where middleware cannot replace it, so the container
+  also runs with `--no-server-header`.
+- `Strict-Transport-Security: max-age=31536000`, without `preload` or
+  `includeSubDomains`. Both are hard to reverse and neither is safe to assert
+  for a custom domain that does not exist yet.
+- CSP with `object-src 'none'`, `frame-ancestors 'none'`, `base-uri 'self'`
+  and `connect-src 'self'`. `script-src` carries per-file SHA-256 hashes for
+  the exported bundle's inline scripts and never `'unsafe-inline'`.
+  `'unsafe-inline'` appears only under `style-src-attr`, which cannot execute
+  script.
+- Rate limiting enforced: 13 requests to `/generate` returned ten 200s
+  followed by three 429s, against a declared limit of 10/hour.
+- Validation errors do not echo the submitted value. A script tag sent as a
+  name, a date and a city produced `{"detail":"Invalid birth date."}`, and the
+  server-rendered error path likewise reflected nothing.
+- Rate-limit buckets are keyed by a salted BLAKE2b digest, so the client
+  address is not retained in process memory.
+- `/docs`, `/redoc` and `/openapi.json` all return 404.
+- No known vulnerabilities in the Python runtime dependencies.
+
+Each of these is pinned by a test in `tests/test_privacy.py`, so the posture
+fails the build rather than eroding quietly.

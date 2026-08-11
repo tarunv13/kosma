@@ -227,3 +227,56 @@ def test_planet_symbols_fall_back_rather_than_break() -> None:
     # _sigil must always yield something renderable either way.
     for planet in pdf_generator.SYMBOLS:
         assert pdf_generator._sigil(planet).strip()
+
+
+# ── headers a scanner will read ───────────────────────────────────────
+
+
+def test_hsts_is_sent_without_overreaching(client: TestClient) -> None:
+    """A year of HTTPS on this host, and nothing that is hard to walk back.
+
+    `preload` puts the domain in a list compiled into browsers, and
+    `includeSubDomains` commits subdomains of a future custom domain before
+    any exist to check. Both are deliberately absent.
+    """
+    value = client.get("/healthz").headers.get("strict-transport-security", "")
+    assert "max-age=31536000" in value
+    assert "preload" not in value
+    assert "includeSubDomains" not in value
+
+
+def test_the_app_supplies_exactly_one_server_header(client: TestClient) -> None:
+    """uvicorn writes its own banner beneath ASGI, where middleware cannot
+    replace it. The container runs with --no-server-header so this one wins;
+    this test only proves the app's own header is set and is not a version
+    string. The duplicate is covered by test_docker_cmd_suppresses_the_banner.
+    """
+    assert client.get("/healthz").headers.get("server") == "kosma"
+
+
+def test_docker_cmd_suppresses_the_banner() -> None:
+    """The middleware alone was not enough, so the flag has to stay.
+
+    Without --no-server-header the response carried both "uvicorn" and
+    "kosma", with uvicorn's read first by anything scanning.
+    """
+    dockerfile = (REPO / "Dockerfile").read_text(encoding="utf-8")
+    assert "--no-server-header" in dockerfile
+
+
+def test_csp_denies_the_obvious_things(client: TestClient) -> None:
+    csp = client.get("/").headers["content-security-policy"]
+    assert "object-src 'none'" in csp
+    assert "frame-ancestors 'none'" in csp
+    assert "base-uri 'self'" in csp
+    assert "connect-src 'self'" in csp
+    # 'unsafe-inline' may appear only for style attributes, never for script.
+    script = next(d for d in csp.split(";") if d.strip().startswith("script-src"))
+    assert "'unsafe-inline'" not in script, "script-src must never be unsafe-inline"
+    assert "'unsafe-eval'" not in csp
+
+
+def test_no_interactive_docs_are_published(client: TestClient) -> None:
+    """Schema endpoints hand an attacker the whole input surface."""
+    for path in ("/docs", "/redoc", "/openapi.json"):
+        assert client.get(path).status_code == 404, f"{path} is reachable"
