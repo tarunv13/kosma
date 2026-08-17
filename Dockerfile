@@ -31,7 +31,7 @@ RUN python -m venv /opt/venv \
 # The React client is a static bundle: it is compiled here and copied into the
 # runtime image as plain files, so Node exists at build time only and never
 # ships in the final layer.
-FROM node:22-slim AS webbuilder
+FROM node:26-slim AS webbuilder
 
 WORKDIR /web
 
